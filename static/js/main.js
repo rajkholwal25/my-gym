@@ -331,32 +331,42 @@
     });
   }
 
-  // Home: demo exercise tiles
+  // Home: one exercise per muscle (admin's choice from /api/exercises/home)
   var homeExercises = document.getElementById("home-exercises");
   if (homeExercises) {
     homeExercises.innerHTML = "<p class=\"muted\">Loading exercises…</p>";
-    fetch("/api/exercises")
+    fetch("/api/exercises/home")
       .then(function (r) { return r.json(); })
       .then(function (data) {
         var list = Array.isArray(data) ? data : [];
         if (!list.length) {
-          homeExercises.innerHTML = "<p class=\"muted\">No exercises yet. Run the Supabase seed in supabase_schema.sql.</p>";
+          homeExercises.innerHTML = "<p class=\"muted\">No exercises yet. Admin can add global exercises and choose one per muscle for the home page.</p>";
           return;
         }
-        homeExercises.innerHTML = list.slice(0, 8).map(function (ex) {
+        homeExercises.innerHTML = list.map(function (ex) {
           var img = (ex.image_url || "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop").replace(/&/g, "&amp;");
           var name = (ex.name || "Exercise").replace(/</g, "&lt;");
           var mg = (ex.muscle_group || "").replace(/</g, "&lt;");
+          var id = (ex.id || "").replace(/"/g, "&quot;");
+          var imgUrl = (ex.image_url || "").replace(/"/g, "&quot;");
+          var vidUrl = (ex.video_url || "").replace(/"/g, "&quot;");
           return (
-            "<div class=\"exercise-tile\">" +
+            "<article class=\"exercise-tile\" data-id=\"" + id + "\" data-name=\"" + name.replace(/"/g, "&quot;") + "\" data-image-url=\"" + imgUrl + "\" data-video-url=\"" + vidUrl + "\" data-muscle-group=\"" + mg + "\" tabindex=\"0\" role=\"button\">" +
               "<img src=\"" + img + "\" alt=\"\" loading=\"lazy\" />" +
-              "<div class=\"exercise-tile-body\">" +
-                "<h4>" + name + "</h4>" +
-                "<div class=\"meta\">" + mg + "</div>" +
+              "<div class=\"exercise-tile-info\">" +
+                "<div class=\"exercise-tile-name\">" + name + "</div>" +
+                "<div class=\"exercise-tile-sub\">" + mg + "</div>" +
               "</div>" +
-            "</div>"
+            "</article>"
           );
         }).join("");
+
+        homeExercises.querySelectorAll(".exercise-tile").forEach(function (tile) {
+          tile.addEventListener("click", function () {
+            var ex = exerciseFromTile(tile);
+            if (ex) openImageThenVideo(ex);
+          });
+        });
       })
       .catch(function () {
         homeExercises.innerHTML = "<p class=\"muted\">Failed to load exercises.</p>";
@@ -521,7 +531,7 @@
 
         var tile = e.target.closest(".exercise-tile");
         if (!tile) return;
-        if (e.target.closest(".exercise-edit") || e.target.closest(".exercise-delete")) return;
+        if (e.target.closest(".exercise-edit") || e.target.closest(".exercise-delete") || e.target.closest(".admin-show-on-home")) return;
         try {
           var ex = exerciseFromTile(tile);
           if (!ex) return;
@@ -604,6 +614,21 @@
     // Global exercises grid
     if (aGrid) {
       aGrid.addEventListener("click", function (e) {
+        var showOnHomeBtn = e.target.closest(".admin-show-on-home");
+        if (showOnHomeBtn) {
+          e.preventDefault();
+          var id = showOnHomeBtn.getAttribute("data-id");
+          if (!id) return;
+          fetch("/api/admin/exercises/" + encodeURIComponent(id) + "/show-on-home", { method: "POST" })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data && data.error) { alert(data.error); return; }
+              window.location.reload();
+            })
+            .catch(function () { alert("Failed to set show on home."); });
+          return;
+        }
+
         var delBtn = e.target.closest(".exercise-delete");
         if (delBtn) {
           e.preventDefault();
@@ -629,6 +654,8 @@
             if (!exEdit) return;
             document.getElementById("admin-edit-ex-id").value = exEdit.id || "";
             document.getElementById("admin-edit-ex-name").value = exEdit.name || "";
+            var seq = (tileForEdit.dataset && tileForEdit.dataset.sequenceOrder) ? tileForEdit.dataset.sequenceOrder : "";
+            document.getElementById("admin-edit-ex-sequence").value = seq !== undefined && seq !== "" ? seq : "0";
             var mg = (tileForEdit.dataset && tileForEdit.dataset.muscleGroup) ? tileForEdit.dataset.muscleGroup : (exEdit.muscle_group || "");
             document.getElementById("admin-edit-ex-mg").value = (mg || "").toLowerCase();
             document.getElementById("admin-edit-ex-image-url").value = exEdit.image_url || "";

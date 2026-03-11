@@ -82,6 +82,10 @@
             </select>
           </div>
           <div class="field">
+            <label>Sequence (order)</label>
+            <input type="number" name="sequence_order" min="0" value="0" placeholder="0 = first" title="Ideal order for users (1, 2, 3...). Lower = earlier." />
+          </div>
+          <div class="field">
             <label>Image upload (recommended)</label>
             <input type="file" name="image_file" accept="image/*" />
           </div>
@@ -122,15 +126,20 @@
                 data-image-url="{{ ex.image_url or '' }}"
                 data-video-url="{{ ex.video_url or '' }}"
                 data-muscle-group="{{ ex.muscle_group }}"
+                data-sequence-order="{{ ex.get('sequence_order', 0) }}"
                 tabindex="0"
                 role="button"
                 aria-label="Open {{ ex.name }}"
               >
                 <img src="{{ ex.image_url }}" alt="{{ ex.name }}" loading="lazy" />
                 <div class="exercise-tile-info">
-                  <div class="exercise-tile-name">{{ ex.name }}</div>
+                  <div class="exercise-tile-name">{% if ex.get('sequence_order', 0) %}{{ ex.sequence_order }}. {% endif %}{{ ex.name }}</div>
                 </div>
                 <div class="exercise-actions">
+                  {% if ex.show_on_home %}
+                    <span class="pill pill-home">On home</span>
+                  {% endif %}
+                  <button class="btn btn-sm btn-accent admin-show-on-home" data-id="{{ ex.id }}" type="button">Show on home</button>
                   <button class="btn btn-sm exercise-edit" data-id="{{ ex.id }}" type="button">Edit</button>
                   <button class="btn btn-sm btn-danger exercise-delete" data-id="{{ ex.id }}" type="button">Delete</button>
                 </div>
@@ -159,6 +168,10 @@
         <div class="field">
           <label>Name</label>
           <input id="admin-edit-ex-name" name="name" />
+        </div>
+        <div class="field">
+          <label>Sequence (order)</label>
+          <input type="number" id="admin-edit-ex-sequence" name="sequence_order" min="0" placeholder="0" title="Ideal order for users (1, 2, 3...)." />
         </div>
         <div class="field">
           <label>Muscle group</label>

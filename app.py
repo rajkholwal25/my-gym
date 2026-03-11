@@ -539,16 +539,19 @@ def admin_dashboard():
     except Exception:
         admin_exercises = []
 
-    # Group global exercises by muscle_group for admin UI (order: chest, back, biceps, triceps, shoulders, legs, core)
+    # Group global exercises by muscle_group for admin UI; sort each group by sequence_order then name
     muscle_order = [m for m in MUSCLE_GROUPS if m != "rest"]
     exercises_by_group = {}
     for mg in muscle_order:
-        exercises_by_group[mg] = [ex for ex in admin_exercises if (ex.get("muscle_group") or "").lower() == mg]
-    # Include any other groups that might exist in DB but not in MUSCLE_GROUPS
+        group_list = [ex for ex in admin_exercises if (ex.get("muscle_group") or "").lower() == mg]
+        exercises_by_group[mg] = sorted(group_list, key=lambda e: (e.get("sequence_order") or 0, (e.get("name") or "")))
     for ex in admin_exercises:
         mg = (ex.get("muscle_group") or "").strip().lower()
         if mg and mg not in exercises_by_group:
-            exercises_by_group[mg] = [e for e in admin_exercises if (e.get("muscle_group") or "").strip().lower() == mg]
+            exercises_by_group[mg] = sorted(
+                [e for e in admin_exercises if (e.get("muscle_group") or "").strip().lower() == mg],
+                key=lambda e: (e.get("sequence_order") or 0, (e.get("name") or "")),
+            )
 
     return render_template(
         "admin.html",
@@ -831,6 +834,39 @@ def api_exercises():
             params["created_by"] = "is.null"
         rows = sb_select("exercises", params=params)
         return jsonify(rows or [])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/exercises/home")
+def api_exercises_home():
+    """One exercise per muscle group for the home page. Uses admin's 'show on home' choice; else first by name."""
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        return jsonify([])
+    try:
+        key = _service_key_or_anon()
+        rows = sb_select(
+            "exercises",
+            params={"select": "*", "created_by": "is.null", "order": "name.asc", "limit": 500},
+            key_override=key,
+        ) or []
+        # Build one per muscle: prefer show_on_home=True; else first by sequence then name
+        muscle_order = [m for m in MUSCLE_GROUPS if m != "rest"]
+        by_muscle = {}
+        for ex in rows:
+            mg = (ex.get("muscle_group") or "").strip().lower()
+            if not mg:
+                continue
+            if mg not in by_muscle:
+                by_muscle[mg] = []
+            by_muscle[mg].append(ex)
+        result = []
+        for mg in muscle_order:
+            list_for_mg = sorted(by_muscle.get(mg) or [], key=lambda e: (e.get("sequence_order") or 0, (e.get("name") or "")))
+            chosen = next((e for e in list_for_mg if e.get("show_on_home")), list_for_mg[0] if list_for_mg else None)
+            if chosen:
+                result.append(chosen)
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1125,6 +1161,10 @@ def api_admin_exercises():
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        try:
+            sequence_order = int(request.form.get("sequence_order") or 0)
+        except ValueError:
+            sequence_order = 0
 
         if not name or not muscle_group:
             return jsonify({"error": "name and muscle_group required"}), 400
@@ -1185,6 +1225,10 @@ def api_admin_exercise_detail(ex_id):
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        try:
+            sequence_order = int(request.form.get("sequence_order") or 0)
+        except ValueError:
+            sequence_order = 0
 
         updates = {}
         if name:
@@ -1199,11 +1243,55 @@ def api_admin_exercise_detail(ex_id):
         elif image_url:
             updates["image_url"] = image_url
         updates["video_url"] = video_url or None
+        # sequence_order: only send if DB has the column (run supabase_show_on_home.sql); else 400
+        updates_with_seq = {**updates, "sequence_order": sequence_order}
 
         if not updates:
             return jsonify({"error": "Nothing to update"}), 400
-        out = sb_update("exercises", updates, match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
-        return jsonify(out[0] if out else {"ok": True})
+        try:
+            out = sb_update("exercises", updates_with_seq, match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
+            return jsonify(out[0] if out else {"ok": True})
+        except requests.HTTPError as e:
+            if e.response is not None and e.response.status_code in (400, 422):
+                # DB may not have sequence_order column yet; retry without it
+                out = sb_update("exercises", updates, match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
+                return jsonify(out[0] if out else {"ok": True})
+            raise
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/exercises/<ex_id>/show-on-home", methods=["POST"])
+@admin_required
+def api_admin_exercise_show_on_home(ex_id):
+    """Set this global exercise as the one shown on the home page for its muscle group."""
+    if not SUPABASE_REST or not SUPABASE_KEY or not SUPABASE_SERVICE_KEY:
+        return jsonify({"error": "Database not configured"}), 500
+    try:
+        rows = sb_select(
+            "exercises",
+            params={"select": "id,muscle_group,created_by", "id": f"eq.{ex_id}", "limit": 1},
+            key_override=SUPABASE_SERVICE_KEY,
+        ) or []
+        if not rows:
+            return jsonify({"error": "Not found"}), 404
+        ex = rows[0]
+        if ex.get("created_by") is not None:
+            return jsonify({"error": "Only global exercises can be shown on home"}), 400
+        mg = (ex.get("muscle_group") or "").strip().lower()
+        if not mg:
+            return jsonify({"error": "Exercise has no muscle group"}), 400
+        # Clear show_on_home for all other global exercises in this muscle group
+        url = f"{SUPABASE_REST}/exercises"
+        headers = _sb_headers("return=minimal", key_override=SUPABASE_SERVICE_KEY)
+        params_clear = {"muscle_group": f"eq.{mg}", "created_by": "is.null"}
+        r_clear = requests.patch(url, headers=headers, params=params_clear, json={"show_on_home": False}, timeout=30)
+        r_clear.raise_for_status()
+        # Set this exercise as show on home
+        sb_update("exercises", {"show_on_home": True}, match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
+        return jsonify({"ok": True})
+    except requests.HTTPError as e:
+        return jsonify({"error": str(e)}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

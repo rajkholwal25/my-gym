@@ -29,7 +29,7 @@
           <img src="{{ ex.image_url }}" alt="{{ ex.name }}" loading="lazy" />
         </div>
         <div class="exercise-meta">
-          <h3>{{ ex.name }}</h3>
+          <h3>{% if ex.get('sequence_order', 0) %}{{ ex.sequence_order }}. {% endif %}{{ ex.name }}</h3>
           <p class="muted">{{ ex.muscle_group }}</p>
         </div>
       </article>

@@ -331,6 +331,23 @@ body::before {
   border: 1px solid rgba(154, 160, 168, 0.6);
 }
 
+.pill-home {
+  background: rgba(0, 212, 170, 0.25);
+  color: #7cffc3;
+  border: 1px solid rgba(0, 212, 170, 0.7);
+}
+
+.btn-accent {
+  background: rgba(0, 212, 170, 0.25);
+  color: #7cffc3;
+  border: 1px solid rgba(0, 212, 170, 0.6);
+}
+
+.btn-accent:hover {
+  background: rgba(0, 212, 170, 0.4);
+  border-color: rgba(0, 212, 170, 0.8);
+}
+
 .admin-create-ex-card .profile-form {
   max-width: 100%;
   margin: 0.75rem 0 0.75rem;
@@ -558,10 +575,43 @@ body::before {
   display: block;
 }
 
+/* Text block below image: keep clear gap from card border (home + schedule day) */
+.exercise-tile-info {
+  padding: 1.15rem 1.5rem;
+}
+
+.exercise-tile-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+
+.exercise-tile-sub {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  text-transform: capitalize;
+}
+
+/* Schedule day page: text block below image */
+.exercise-tile .exercise-meta {
+  padding: 1.15rem 1.5rem;
+}
+
+.exercise-tile .exercise-meta h3,
+.exercise-tile .exercise-meta p {
+  margin: 0 0 0.25rem 0;
+}
+
+.exercise-tile .exercise-meta h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
 .exercise-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.5rem;
-  padding: 0.75rem 1rem 1rem;
+  padding: 0.75rem 1.5rem 1.25rem;
 }
 
 .btn-sm {
@@ -570,7 +620,7 @@ body::before {
 }
 
 .exercise-tile-body {
-  padding: 0.9rem 1rem 1rem;
+  padding: 1.15rem 1.5rem 1.15rem;
 }
 
 .exercise-tile-body h4 {
