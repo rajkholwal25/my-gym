@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <h1>Create account</h1>
+    <p>Fill your details once. Next time you can login with your password.</p>
+    <form method="post" action="{{ url_for('register') }}" class="auth-form">
+      <label>
+        Full name
+        <input type="text" name="name" required placeholder="Your name" />
+      </label>
+      <label>
+        Email
+        <input type="email" name="email" required placeholder="you@example.com" />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="Create a password" />
+      </label>
+      <label>
+        Age
+        <input type="number" name="age" min="10" max="100" placeholder="e.g. 22" />
+      </label>
+      <label>
+        Weight (kg)
+        <input type="number" name="weight" min="30" max="200" step="0.1" placeholder="e.g. 70" />
+      </label>
+      <label>
+        Height (cm)
+        <input type="number" name="height" min="100" max="250" placeholder="e.g. 170" />
+      </label>
+      <label>
+        Goal
+        <select name="goal" class="auth-form-select">
+          <option value="">Select goal (optional)</option>
+          {% for g in goals %}
+          <option value="{{ g.name }}">{{ g.name }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Create account</button>
+    </form>
+    <div class="auth-links">
+      <a href="{{ url_for('login') }}">Already have an account? Login</a>
+    </div>
+  </div>
+</section>
+{% endblock %}
+

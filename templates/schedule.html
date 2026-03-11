@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Schedule{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>Weekly Schedule</h1>
+  <p>Click a day to see exercises. {% if user %}Create and edit your own weekly plan below.{% else %}Login to create your own schedule.{% endif %}</p>
+</section>
+
+<div class="schedule-grid" id="schedule-grid">
+  {% for day in days %}
+  {% if user %}
+  <a class="schedule-card schedule-card-link" href="{{ url_for('schedule_day', day_name=day) }}">
+    <div class="schedule-card-inner">
+      <h3 class="schedule-day">{{ day }}</h3>
+      <p class="schedule-muscle">
+        {% if schedule and schedule.get(day) %}
+          {{ schedule[day].muscle_group }}
+        {% else %}
+          Rest day
+        {% endif %}
+      </p>
+      <div class="schedule-image-wrap">
+        <img
+          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop"
+          alt="{{ day }}"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </a>
+  {% else %}
+  <article class="schedule-card" data-day="{{ day }}">
+    <div class="schedule-card-inner">
+      <h3 class="schedule-day">{{ day }}</h3>
+      <p class="schedule-muscle">Rest day</p>
+      <div class="schedule-image-wrap">
+        <img
+          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop"
+          alt="{{ day }}"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  </article>
+  {% endif %}
+  {% endfor %}
+</div>
+
+{% if user %}
+<section class="section" style="margin-top:2.5rem;">
+  <div class="section-header">
+    <div>
+      <h2>Create / edit your schedule</h2>
+      <p>Choose which muscle group you want to train on each day.</p>
+    </div>
+  </div>
+  <div class="schedule-edit-grid" id="schedule-edit-grid-schedule">
+    {% for day in days %}
+    <div class="schedule-edit-row">
+      <span class="day-label">{{ day }}</span>
+      <select data-day="{{ day }}" class="schedule-select">
+        <option value="rest" {% if not schedule or not schedule.get(day) %}selected{% endif %}>Rest</option>
+        {% for mg in muscle_groups %}
+        <option value="{{ mg }}" {% if schedule and schedule.get(day) and schedule[day].muscle_group == mg %}selected{% endif %}>{{ mg }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn btn-primary" id="save-schedule-btn-schedule">Save schedule</button>
+</section>
+{% endif %}
+
+<div class="exercises-panel hidden" id="exercises-panel">
+  <div class="exercises-panel-header">
+    <h2 id="exercises-day-title">Monday</h2>
+    <button type="button" class="btn-close-panel" id="close-exercises">×</button>
+  </div>
+  <div class="exercises-list" id="exercises-list"></div>
+</div>
+
+<div class="modal video-modal hidden" id="video-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-video">×</button>
+    <div class="video-wrapper">
+      <video id="exercise-video" controls playsinline></video>
+    </div>
+    <p class="video-title" id="video-title"></p>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const scheduleDays = {{ days | tojson }};
+  const userSchedule = {{ (schedule or {}) | tojson }};
+</script>
+{% endblock %}

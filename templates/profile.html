@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>Profile & Schedule</h1>
+  <p>Update your details and set your weekly muscle-group schedule.</p>
+</section>
+
+<form method="post" action="{{ url_for('profile') }}" class="profile-form">
+  <h2>Your details</h2>
+  <label>Name <input type="text" name="name" value="{{ user.name or '' }}" placeholder="Your name" /></label>
+  <label>Email <input type="email" value="{{ user.email }}" disabled /></label>
+  <label>Age <input type="number" name="age" value="{{ user.age or '' }}" min="10" max="120" placeholder="Age" /></label>
+  <label>Weight (kg) <input type="number" name="weight" value="{{ user.weight or '' }}" min="30" max="200" step="0.1" placeholder="Weight" /></label>
+  <label>Height (cm) <input type="number" name="height" value="{{ user.height or '' }}" min="100" max="250" placeholder="Height" /></label>
+  <label>Goal <input type="text" name="goal" value="{{ user.goal or '' }}" placeholder="e.g. muscle gain, fat loss" /></label>
+  <button type="submit" class="btn btn-primary">Save profile</button>
+</form>
+
+<div class="schedule-edit">
+  <h2>Weekly schedule</h2>
+  <p>Assign a muscle group to each day. Rest day = no workout.</p>
+  <div class="schedule-edit-grid" id="schedule-edit-grid">
+    {% for day in ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'] %}
+    <div class="schedule-edit-row">
+      <span class="day-label">{{ day }}</span>
+      <select name="schedule_{{ day }}" data-day="{{ day }}" class="schedule-select">
+        <option value="rest">Rest</option>
+        {% for mg in muscle_groups %}
+        <option value="{{ mg }}" {% if schedule and schedule.get(day) and schedule[day].muscle_group == mg %}selected{% endif %}>{{ mg }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endfor %}
+  </div>
+  <button type="button" class="btn btn-primary" id="save-schedule-btn">Save schedule</button>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  window.PROFILE_PAGE = true;
+  const scheduleDays = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+</script>
+{% endblock %}

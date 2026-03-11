@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}My Exercises{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>My Exercises</h1>
+  <p>Create your own exercises. Upload an image (stores in Supabase Storage) or paste an image link. Video link is optional.</p>
+</section>
+
+<section class="section">
+  <div class="schedule-edit" style="max-width: 720px;">
+    <h2>Create exercise</h2>
+    <form id="create-exercise-form" class="profile-form" enctype="multipart/form-data">
+      <label>Exercise name
+        <input type="text" name="name" required placeholder="e.g. Cable Fly" />
+      </label>
+      <label>Muscle group
+        <select name="muscle_group" required>
+          {% for mg in muscle_groups %}
+          <option value="{{ mg }}">{{ mg }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Image upload (recommended)
+        <input type="file" name="image_file" accept="image/png,image/jpeg,image/webp" />
+      </label>
+      <div class="muted" style="margin-top:-0.5rem;margin-bottom:1rem;">OR</div>
+      <label>Image URL
+        <input type="url" name="image_url" placeholder="https://..." />
+      </label>
+      <label>Video URL (optional)
+        <input type="url" name="video_url" placeholder="https://...mp4 or YouTube link" />
+      </label>
+      <button type="submit" class="btn btn-primary">Add exercise</button>
+    </form>
+    <p class="muted" id="exercise-create-status" style="margin-top:0.75rem;"></p>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <div>
+      <h2>Your exercises</h2>
+      <p>Click an image to open video (plays after 2 seconds if video link exists).</p>
+    </div>
+  </div>
+  <div class="exercise-grid" id="my-exercises-grid">
+    {% for ex in exercises %}
+    <article class="exercise-tile"
+      data-id="{{ ex.id }}"
+      data-name="{{ ex.name }}"
+      data-image-url="{{ ex.image_url }}"
+      data-video-url="{{ ex.video_url or '' }}"
+      data-muscle-group="{{ ex.muscle_group }}"
+    >
+      <div class="exercise-media">
+        <img src="{{ ex.image_url }}" alt="{{ ex.name }}" loading="lazy" />
+      </div>
+      <div class="exercise-meta">
+        <h3>{{ ex.name }}</h3>
+        <p class="muted">{{ ex.muscle_group }}</p>
+      </div>
+      <div class="exercise-actions">
+        <button type="button" class="btn btn-outline btn-sm exercise-edit" data-id="{{ ex.id }}">Edit</button>
+        <button type="button" class="btn btn-outline btn-sm exercise-delete" data-id="{{ ex.id }}">Delete</button>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+
+<div class="modal hidden" id="exercise-edit-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-ex-edit">×</button>
+    <h2 style="margin-bottom:0.75rem;">Edit exercise</h2>
+    <form id="edit-exercise-form" class="profile-form" enctype="multipart/form-data">
+      <input type="hidden" name="id" id="edit-ex-id" />
+      <label>Exercise name
+        <input type="text" name="name" id="edit-ex-name" required />
+      </label>
+      <label>Muscle group
+        <select name="muscle_group" id="edit-ex-mg" required>
+          {% for mg in muscle_groups %}
+          <option value="{{ mg }}">{{ mg }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>Replace image (optional upload)
+        <input type="file" name="image_file" accept="image/png,image/jpeg,image/webp" />
+      </label>
+      <div class="muted" style="margin-top:-0.5rem;margin-bottom:1rem;">OR</div>
+      <label>Image URL (optional)
+        <input type="url" name="image_url" id="edit-ex-image-url" placeholder="https://..." />
+      </label>
+      <label>Video URL (optional)
+        <input type="url" name="video_url" id="edit-ex-video-url" placeholder="https://..." />
+      </label>
+      <button type="submit" class="btn btn-primary">Save changes</button>
+      <p class="muted" id="exercise-edit-status" style="margin-top:0.75rem;"></p>
+    </form>
+  </div>
+</div>
+
+<div class="modal video-modal hidden" id="video-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-video">×</button>
+    <div class="video-wrapper">
+      <video id="exercise-video" controls playsinline></video>
+    </div>
+    <p class="video-title" id="video-title"></p>
+  </div>
+</div>
+
+<div class="modal hidden" id="image-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-image">×</button>
+    <div class="video-wrapper" style="background:transparent;">
+      <img id="exercise-image" alt="" style="width:100%;display:block;border-radius:12px;" />
+    </div>
+    <p class="video-title" id="image-title"></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.MY_EXERCISES_PAGE = true;
+</script>
+{% endblock %}
+

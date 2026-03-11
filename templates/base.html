@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}My Gym{% endblock %} | My Gym</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+  <header class="navbar">
+    <a href="{{ url_for('index') }}" class="logo">My Gym</a>
+    <nav class="nav-links">
+      <a href="{{ url_for('index') }}">HOME</a>
+      <a href="{{ url_for('schedule') }}">SCHEDULE</a>
+      {% if user %}
+      <a href="{{ url_for('my_exercises') }}">MY EXERCISES</a>
+      {% endif %}
+      <a href="{{ url_for('diet') }}">DIET</a>
+      <a href="{{ url_for('weekly_analysis') }}">WEEKLY ANALYSIS</a>
+      <a href="{{ url_for('calories') }}">CALORIES</a>
+      <a href="{{ url_for('bmi') }}">BMI</a>
+      {% if user %}
+        <a href="{{ url_for('profile') }}">PROFILE</a>
+        <a href="{{ url_for('logout') }}">LOGOUT</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">LOGIN</a>
+      {% endif %}
+    </nav>
+    <button class="nav-toggle" aria-label="Menu">☰</button>
+  </header>
+
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div class="flash-messages">
+        {% for category, msg in messages %}
+          <div class="flash {{ category }}">{{ msg }}</div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <main class="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <script>
+    window.USER_LOGGED_IN = {{ 'true' if user else 'false' }};
+  </script>
+  <script src="{{ url_for('static', filename='js/main.js') }}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

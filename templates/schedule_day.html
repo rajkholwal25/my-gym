@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Schedule – {{ day_name }}{% endblock %}
+{% block content %}
+<section class="diet-day-screen">
+  <a href="{{ url_for('schedule') }}" class="diet-back-link" aria-label="Back to Schedule">
+    <span class="diet-back-arrow">←</span> Back to Schedule
+  </a>
+
+  <h1 class="diet-day-screen-title">{{ day_name }}
+    {% if muscle_group %}
+      <span class="diet-day-screen-subtitle">{{ muscle_group }}</span>
+    {% else %}
+      <span class="diet-day-screen-subtitle">Rest day</span>
+    {% endif %}
+  </h1>
+
+  {% if not muscle_group %}
+    <p class="muted">No exercises for rest day.</p>
+  {% else %}
+    <div class="exercise-grid" id="schedule-day-exercises">
+      {% for ex in exercises %}
+      <article class="exercise-tile"
+        data-id="{{ ex.id }}"
+        data-name="{{ ex.name }}"
+        data-image-url="{{ ex.image_url }}"
+        data-video-url="{{ ex.video_url or '' }}"
+      >
+        <div class="exercise-media">
+          <img src="{{ ex.image_url }}" alt="{{ ex.name }}" loading="lazy" />
+        </div>
+        <div class="exercise-meta">
+          <h3>{{ ex.name }}</h3>
+          <p class="muted">{{ ex.muscle_group }}</p>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</section>
+
+<div class="modal video-modal hidden" id="video-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-video">×</button>
+    <div class="video-wrapper">
+      <video id="exercise-video" controls playsinline></video>
+    </div>
+    <p class="video-title" id="video-title"></p>
+  </div>
+</div>
+
+<div class="modal hidden" id="image-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-image">×</button>
+    <div class="video-wrapper" style="background:transparent;">
+      <img id="exercise-image" alt="" style="width:100%;display:block;border-radius:12px;" />
+    </div>
+    <p class="video-title" id="image-title"></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.SCHEDULE_DAY_PAGE = true;
+</script>
+{% endblock %}
+

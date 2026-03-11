@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<section class="auth-page">
+  <div class="auth-card">
+    <h1>Login</h1>
+    <p>Log in with your email and password.</p>
+    <form method="post" action="{{ url_for('login') }}" class="auth-form">
+      <label>
+        Email
+        <input type="email" name="email" required placeholder="you@example.com" />
+      </label>
+      <label>
+        Password
+        <input type="password" name="password" required placeholder="Your password" />
+      </label>
+      <button type="submit" class="btn btn-primary btn-block">Login</button>
+    </form>
+    <div class="auth-links">
+      <a href="{{ url_for('forgot_password') }}">Forgot password?</a>
+      <a href="{{ url_for('register') }}">Create account</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

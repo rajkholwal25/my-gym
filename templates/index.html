@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<section class="hero hero--single">
+  <div class="hero-content">
+    <h1>Build Your Best Self</h1>
+    <p>Track workouts, follow your schedule, and crush your goals with My Gym.</p>
+    {% if not user %}
+    <a href="{{ url_for('login') }}" class="btn btn-primary">Get Started</a>
+    {% else %}
+    <a href="{{ url_for('schedule') }}" class="btn btn-primary">View Schedule</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <div>
+      <h2>Your week (preview)</h2>
+      <p>
+        {% if user %}
+          Your weekly schedule. Click a day to see exercises (admin + your own).
+        {% else %}
+          7-day plan cards (demo). Click to explore exercises.
+        {% endif %}
+      </p>
+    </div>
+    <a class="btn btn-primary" href="{{ url_for('schedule') }}">Open Schedule</a>
+  </div>
+  <div class="schedule-grid" id="home-schedule-grid">
+    {% for day in ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"] %}
+      {% if user %}
+      <a class="schedule-card schedule-card-link" href="{{ url_for('schedule_day', day_name=day) }}" data-day="{{ day }}">
+        <div class="schedule-card-inner">
+          <h3 class="schedule-day">{{ day }}</h3>
+          <p class="schedule-muscle">
+            {% if schedule and schedule.get(day) and schedule[day].muscle_group and schedule[day].muscle_group != 'rest' %}
+              {{ schedule[day].muscle_group }}
+            {% else %}
+              Rest day
+            {% endif %}
+          </p>
+          <div class="schedule-image-wrap">
+            <img
+              src="{% if day == 'Monday' %}{{ url_for('static', filename='images/chest-card.png') }}{% elif day == 'Tuesday' %}{{ url_for('static', filename='images/back-card.png') }}{% elif day == 'Friday' %}{{ url_for('static', filename='images/shoulder-card.png') }}{% else %}https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop{% endif %}"
+              alt="{{ day }}"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </a>
+      {% else %}
+      <article class="schedule-card" data-day="{{ day }}">
+        <div class="schedule-card-inner">
+          <h3 class="schedule-day">{{ day }}</h3>
+          <p class="schedule-muscle">chest</p>
+          <div class="schedule-image-wrap">
+            <img
+              src="{% if day == 'Monday' %}{{ url_for('static', filename='images/chest-card.png') }}{% elif day == 'Tuesday' %}{{ url_for('static', filename='images/back-card.png') }}{% elif day == 'Friday' %}{{ url_for('static', filename='images/shoulder-card.png') }}{% else %}https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop{% endif %}"
+              alt="{{ day }}"
+              loading="lazy"
+            />
+          </div>
+        </div>
+      </article>
+      {% endif %}
+    {% endfor %}
+  </div>
+</section>
+
+<section class="section">
+  <div class="section-header">
+    <div>
+      <h2>{% if user %}Exercises (your + admin){% else %}Exercises (demo){% endif %}</h2>
+      <p>{% if user %}Shows admin exercises + your own exercises only.{% else %}Quick sample cards on the home page.{% endif %}</p>
+    </div>
+  </div>
+  <div class="exercise-grid" id="home-exercises">
+    <!-- filled by JS -->
+  </div>
+</section>
+
+<section class="features">
+  <h2>What you get</h2>
+  <div class="feature-cards">
+    <div class="feature-card">
+      <span class="feature-icon">📅</span>
+      <h3>Weekly Schedule</h3>
+      <p>Plan your week: assign muscle groups to each day and stick to it.</p>
+      <a href="{{ url_for('schedule') }}">Go to Schedule →</a>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">💪</span>
+      <h3>Exercises</h3>
+      <p>Browse exercises by muscle group with images and video guides.</p>
+      <a href="{{ url_for('schedule') }}">Pick a day →</a>
+    </div>
+    <div class="feature-card">
+      <span class="feature-icon">📊</span>
+      <h3>Weekly Analysis</h3>
+      <p>See total time, calories burned, and progress over the week.</p>
+      <a href="{{ url_for('weekly_analysis') }}">View Analysis →</a>
+    </div>
+  </div>
+</section>
+{% endblock %}

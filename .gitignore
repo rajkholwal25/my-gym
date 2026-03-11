@@ -1,0 +1,44 @@
+# OS junk
+*.log
+*.tmp
+*.DS_Store
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+
+# Virtualenv / tools
+.python-version
+.pytest_cache/
+.mypy_cache/
+
+# IDE / editor
+.vscode/
+.idea/
+.history/
+
+# Local environment & secrets
+.env
+*.env.local
+.env.*
+
+# PyInstaller / build
+build/
+dist/
+*.spec
+
+# Coverage / test
+.coverage
+coverage.xml
+htmlcov/
+
+# Node / frontend (if added later)
+node_modules/
+*.tsbuildinfo
+

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Diet{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>Diet</h1>
+  <p>Nutrition tips and meal ideas to support your goals.</p>
+</section>
+
+{% if user and user.goal and diet_plan_week %}
+<section class="diet-plan-section">
+  <h2>Your weekly diet plan <span class="goal-badge">{{ user.goal }}</span></h2>
+  <p class="diet-plan-intro">Click a day to open its meals (Breakfast, Lunch, Dinner) and edit.</p>
+  <div class="diet-week">
+    {% for day in diet_plan_week %}
+    <a href="{{ url_for('diet_day', day_name=day.day_name) }}" class="diet-day-card diet-day-link">
+      <span class="diet-day-name">{{ day.day_name }}</span>
+      {% if day.title %}<span class="diet-day-title">{{ day.title }}</span>{% endif %}
+      <span class="diet-day-chevron" aria-hidden="true">→</span>
+    </a>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
+
+<section class="diet-content">
+  <h2>{% if user and user.goal and diet_plan_week %}General tips{% else %}Nutrition tips{% endif %}</h2>
+  <div class="diet-card">
+    <h3>High protein</h3>
+    <p>Include lean meat, eggs, fish, legumes, and dairy to support muscle repair and growth.</p>
+  </div>
+  <div class="diet-card">
+    <h3>Carbs around training</h3>
+    <p>Eat complex carbs (oats, rice, sweet potato) before and after workouts for energy and recovery.</p>
+  </div>
+  <div class="diet-card">
+    <h3>Stay hydrated</h3>
+    <p>Drink water throughout the day; aim for at least 2–3 litres, more on training days.</p>
+  </div>
+  <div class="diet-card">
+    <h3>Calories</h3>
+    <p>Use the <a href="{{ url_for('calories') }}">Calories</a> page to estimate your daily needs based on your goal.</p>
+  </div>
+</section>
+{% endblock %}

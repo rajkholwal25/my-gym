@@ -1,0 +1,1321 @@
+/* My Gym - Fitness dashboard */
+:root {
+  --bg: #0d0f14;
+  --bg-card: #161a22;
+  --bg-elevated: #1e232d;
+  --text: #e8eaed;
+  --text-muted: #9aa0a8;
+  --accent: #00d4aa;
+  --accent-dim: #00a884;
+  --danger: #ff6b6b;
+  --border: #2a2f3a;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --font: "Outfit", system-ui, sans-serif;
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 10px 40px rgba(0, 0, 0, 0.35);
+  --ring: 0 0 0 3px rgba(0, 212, 170, 0.18);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.5;
+  position: relative;
+}
+
+/* Full-page background that stays while scrolling */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(rgba(0, 0, 0, 0.18), rgba(0, 0, 0, 0.28)),
+    url("../images/hero-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: translateZ(0);
+}
+
+@media (max-width: 768px) {
+  body::before {
+    /* Mobile: keep image behind all scroll content */
+    background-position: top center;
+  }
+}
+
+/* Brighter “glow” borders for cards */
+.feature-card,
+.schedule-card,
+.exercise-tile,
+.stat-card,
+.chart-section,
+.diet-card,
+.auth-card,
+.schedule-edit {
+  border-color: rgba(0, 212, 170, 0.22);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 170, 0.08),
+    0 18px 55px rgba(0, 0, 0, 0.45);
+}
+
+.feature-card:hover,
+.schedule-card:hover,
+.exercise-tile:hover {
+  border-color: rgba(0, 212, 170, 0.5);
+  box-shadow:
+    0 0 0 1px rgba(0, 212, 170, 0.2),
+    0 0 28px rgba(0, 212, 170, 0.12),
+    0 22px 70px rgba(0, 0, 0, 0.55);
+}
+
+/* Navbar */
+.navbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  background: rgba(22, 26, 34, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.logo {
+  font-weight: 800;
+  font-size: 1.35rem;
+  color: var(--accent);
+  text-decoration: none;
+  letter-spacing: -0.02em;
+}
+
+.nav-links {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.nav-links a {
+  color: #ffffff;
+  text-decoration: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.4rem 0.7rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.06),
+    0 0 18px rgba(255, 255, 255, 0.08);
+  transition: color 0.2s, background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+}
+
+.nav-links a:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.35);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 26px rgba(255, 255, 255, 0.14);
+  transform: translateY(-1px);
+}
+
+.nav-links a.active {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.16),
+    0 0 32px rgba(255, 255, 255, 0.18);
+}
+
+.nav-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .nav-toggle {
+    display: block;
+  }
+  .nav-links.is-open {
+    display: flex;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    flex-direction: column;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  /* Mobile menu items: full-width green glow buttons */
+  .nav-links.is-open a {
+    width: 100%;
+    text-align: center;
+    padding: 0.75rem 1rem;
+    border-radius: 14px;
+    color: #ffffff;
+    border: 2px solid rgba(0, 212, 170, 0.45);
+    background: rgba(0, 0, 0, 0.18);
+    box-shadow:
+      0 0 0 1px rgba(0, 212, 170, 0.12),
+      0 0 22px rgba(0, 212, 170, 0.14);
+  }
+
+  .nav-links.is-open a:hover {
+    background: rgba(0, 212, 170, 0.08);
+    border-color: rgba(0, 212, 170, 0.75);
+    box-shadow:
+      0 0 0 1px rgba(0, 212, 170, 0.2),
+      0 0 30px rgba(0, 212, 170, 0.18);
+    transform: none;
+  }
+
+  .nav-links.is-open a.active {
+    background: rgba(0, 212, 170, 0.12);
+    border-color: rgba(0, 212, 170, 0.9);
+    box-shadow:
+      0 0 0 1px rgba(0, 212, 170, 0.28),
+      0 0 34px rgba(0, 212, 170, 0.22);
+  }
+}
+
+/* Flash messages */
+.flash-messages {
+  padding: 0.75rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.flash {
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+.flash.success { background: rgba(0, 212, 170, 0.2); color: var(--accent); }
+.flash.error { background: rgba(255, 107, 107, 0.2); color: var(--danger); }
+.flash.info { background: rgba(154, 160, 168, 0.2); color: var(--text-muted); }
+
+/* Main */
+.main-content {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem;
+}
+
+/* Hero */
+.hero {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3rem;
+  align-items: center;
+  margin-bottom: 4rem;
+  min-height: 50vh;
+}
+
+/* Home hero without right-side image */
+.hero.hero--single {
+  grid-template-columns: 1fr;
+}
+
+.hero-content h1 {
+  font-size: clamp(2rem, 5vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.75rem;
+  background: linear-gradient(135deg, #fff 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.hero-content p {
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+
+.hero-visual {
+  background: linear-gradient(135deg, var(--bg-elevated) 0%, var(--bg-card) 100%);
+  border-radius: var(--radius);
+  height: 280px;
+  border: 1px solid var(--border);
+  background-image: url("https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&h=400&fit=crop");
+  background-size: cover;
+  background-position: center;
+  box-shadow: var(--shadow-soft);
+}
+
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+    text-align: center;
+  }
+  .hero-visual {
+    height: 200px;
+  }
+}
+
+/* Buttons */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: transform 0.2s, box-shadow 0.2s;
+  font-family: var(--font);
+}
+
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--ring);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--bg);
+}
+
+.btn-primary:hover {
+  background: var(--accent-dim);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 20px rgba(0, 212, 170, 0.35);
+}
+
+.btn-block {
+  width: 100%;
+  text-align: center;
+}
+
+/* Features */
+.features h2 {
+  font-size: 1.5rem;
+  margin-bottom: 1.5rem;
+  color: var(--text);
+}
+
+.feature-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1.5rem;
+}
+
+.feature-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  transition: border-color 0.2s, transform 0.2s;
+}
+
+.feature-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+}
+
+/* Home sections */
+.section {
+  margin-top: 2.25rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.section-header h2 {
+  font-size: 1.25rem;
+  color: var(--accent);
+}
+
+.section-header p {
+  color: rgba(255, 255, 255, 0.9);
+  font-weight: 400;
+  font-size: 0.9rem;
+}
+
+.exercise-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+}
+
+.exercise-tile {
+  background: rgba(22, 26, 34, 0.9);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.exercise-tile:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 212, 170, 0.35);
+  box-shadow: var(--shadow-soft);
+}
+
+.exercise-tile img {
+  width: 100%;
+  height: 210px; /* +50% from 140px */
+  object-fit: cover;
+  display: block;
+}
+
+.exercise-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem 1rem;
+}
+
+.btn-sm {
+  padding: 0.45rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.exercise-tile-body {
+  padding: 0.9rem 1rem 1rem;
+}
+
+.exercise-tile-body h4 {
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.exercise-tile-body .meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.feature-icon {
+  font-size: 2rem;
+  display: block;
+  margin-bottom: 0.75rem;
+}
+
+.feature-card h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.feature-card p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.feature-card a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.feature-card a:hover {
+  text-decoration: underline;
+}
+
+/* Page header */
+.page-header {
+  margin-bottom: 2rem;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.page-header p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.95rem;
+}
+
+/* Schedule grid */
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 1rem;
+}
+
+/* When schedule cards are links, kill default blue/visited colors */
+.schedule-card-link,
+.schedule-card-link:visited,
+.schedule-card-link:hover,
+.schedule-card-link:active {
+  color: inherit;
+  text-decoration: none;
+}
+
+.schedule-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+
+.schedule-card:hover {
+  border-color: var(--accent);
+  transform: translateY(-4px);
+  box-shadow: var(--shadow);
+}
+
+.schedule-card-inner {
+  padding: 1rem;
+}
+
+.schedule-day {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-bottom: 0.25rem;
+  color: #ffffff;
+}
+
+.schedule-muscle {
+  font-size: 0.85rem;
+  color: var(--accent);
+  text-transform: capitalize;
+  margin-bottom: 0.75rem;
+}
+
+.schedule-image-wrap {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  aspect-ratio: 16/10;
+  background: var(--bg-elevated);
+}
+
+.schedule-image-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Exercises panel */
+.exercises-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 100%;
+  max-width: 420px;
+  height: 100vh;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.4);
+}
+
+.exercises-panel.hidden {
+  display: none;
+}
+
+.exercises-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.exercises-panel-header h2 {
+  font-size: 1.15rem;
+}
+
+.btn-close-panel {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.75rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 0.25rem;
+}
+
+.btn-close-panel:hover {
+  color: var(--text);
+}
+
+.exercises-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Exercise card (in panel) */
+.exercise-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+
+.exercise-card:hover {
+  border-color: var(--accent);
+}
+
+.exercise-card-image {
+  aspect-ratio: 16/10;
+  background: var(--bg);
+  position: relative;
+  overflow: hidden;
+}
+
+.exercise-card-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.exercise-card-image .play-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.exercise-card:hover .play-overlay {
+  opacity: 1;
+}
+
+.play-overlay span {
+  width: 48px;
+  height: 48px;
+  background: var(--accent);
+  color: var(--bg);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.exercise-card-name {
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Video modal */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.modal.hidden {
+  display: none;
+}
+
+.modal-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.modal-content {
+  position: relative;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  padding: 1rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  width: 720px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: var(--bg-elevated);
+  border: none;
+  color: var(--text);
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  font-size: 1.25rem;
+  cursor: pointer;
+  z-index: 1;
+}
+
+.modal-close:hover {
+  background: var(--border);
+}
+
+.video-wrapper {
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #000;
+}
+
+.video-wrapper video {
+  width: 100%;
+  display: block;
+}
+
+.video-title {
+  margin-top: 0.75rem;
+  font-weight: 600;
+}
+
+/* Stats cards (weekly analysis) */
+.stats-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.stat-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Chart */
+.chart-section {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.chart-section h3,
+.recent-logs h3 {
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+
+.recent-logs ul {
+  list-style: none;
+}
+
+.logs-list li {
+  padding: 0.75rem 1rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  margin-bottom: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.logs-list li span {
+  color: var(--text-muted);
+}
+
+/* Diet */
+.diet-plan-section {
+  margin-bottom: 2.5rem;
+}
+
+.diet-plan-section h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.goal-badge {
+  display: inline-block;
+  background: rgba(0, 212, 170, 0.2);
+  color: var(--accent);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.diet-plan-intro {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
+.diet-week {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+/* Day cards on main diet page: click to open day screen */
+.diet-day-card {
+  background: var(--bg-card);
+  border: 2px solid rgba(0, 212, 170, 0.45);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.12), 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+.diet-day-link {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1.25rem 1.5rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+}
+
+.diet-day-link:hover {
+  background: rgba(0, 212, 170, 0.08);
+  border-color: rgba(0, 212, 170, 0.7);
+  box-shadow: 0 0 20px rgba(0, 212, 170, 0.15), 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.diet-day-name {
+  font-weight: 700;
+  color: var(--accent);
+  font-size: 1.05rem;
+}
+
+.diet-day-title {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.9rem;
+  font-weight: 400;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.diet-day-chevron {
+  margin-left: auto;
+  font-size: 1rem;
+  color: var(--accent);
+}
+
+/* Day screen: full view with back arrow */
+.diet-day-screen {
+  max-width: 900px;
+  margin: 0 auto 2rem;
+}
+
+.diet-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.diet-back-link:hover {
+  text-decoration: underline;
+}
+
+.diet-back-arrow {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.diet-day-screen-title {
+  font-size: 1.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--text);
+}
+
+.diet-day-screen-subtitle {
+  font-size: 1rem;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.78);
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.diet-day-meals-grid,
+.diet-meals-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.diet-day-meals-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+@media (max-width: 768px) {
+  .diet-day-meals-grid,
+  .diet-meals-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.diet-meal-card {
+  background: var(--bg-card);
+  border: 2px solid rgba(0, 212, 170, 0.5);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.1), 0 8px 20px rgba(0, 0, 0, 0.25);
+}
+
+.diet-meal-card h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.diet-meal-content {
+  color: #ffffff;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.diet-meal-snacks {
+  margin-bottom: 0;
+}
+
+.diet-day-meals {
+  padding: 0 1.25rem 1.25rem;
+  border-top: 1px solid var(--border);
+}
+
+.diet-day-screen .diet-edit-wrap {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid rgba(0, 212, 170, 0.4);
+}
+
+.diet-edit-wrap {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.diet-edit-btn {
+  font-size: 0.9rem;
+}
+
+.diet-edit-form {
+  margin-top: 1rem;
+}
+
+.diet-edit-form label {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.diet-edit-form textarea {
+  width: 100%;
+  margin-top: 0.25rem;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.9rem;
+  resize: vertical;
+  min-height: 60px;
+}
+
+.diet-edit-form textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.diet-edit-actions {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-outline:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.diet-content {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.diet-content h2 {
+  grid-column: 1 / -1;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+}
+
+.diet-card {
+  background: var(--bg-card);
+  border: 2px solid rgba(0, 212, 170, 0.4);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  box-shadow: 0 0 0 1px rgba(0, 212, 170, 0.08);
+}
+
+.diet-card h3 {
+  font-size: 1rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent);
+}
+
+.diet-card p {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.9rem;
+}
+
+.diet-card a {
+  color: var(--accent);
+}
+
+/* Auth */
+.auth-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-card h1 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.auth-card p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.auth-links {
+  margin-top: 1rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.auth-links a {
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.auth-links a:hover {
+  text-decoration: underline;
+}
+
+.auth-form label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.auth-form input,
+.auth-form select {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+/* Keep inputs dark when filled, pasted, or browser autofill */
+.auth-form input:focus,
+.auth-form select:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--bg);
+  color: var(--text);
+}
+
+.auth-form input:-webkit-autofill,
+.auth-form input:-webkit-autofill:hover,
+.auth-form input:-webkit-autofill:focus,
+.auth-form input:-webkit-autofill:active {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--bg) inset;
+  box-shadow: 0 0 0 1000px var(--bg) inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+.auth-form input::placeholder {
+  color: var(--text-muted);
+}
+
+.auth-form button {
+  margin-top: 0.5rem;
+}
+
+/* Profile form */
+.profile-form,
+.calories-form-wrap,
+.bmi-form-wrap {
+  margin-bottom: 2rem;
+}
+
+.profile-form h2,
+.schedule-edit h2 {
+  font-size: 1.15rem;
+  margin-bottom: 1rem;
+}
+
+.profile-form label,
+.calories-form label,
+.bmi-form label {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+}
+
+.profile-form input,
+.profile-form select,
+.calories-form input,
+.calories-form select,
+.bmi-form input,
+.bmi-form select {
+  width: 100%;
+  max-width: 320px;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+/* Keep inputs dark on autofill/fill (profile, calories, BMI forms) */
+.profile-form input:-webkit-autofill,
+.profile-form input:-webkit-autofill:hover,
+.profile-form input:-webkit-autofill:focus,
+.calories-form input:-webkit-autofill,
+.bmi-form input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  -webkit-box-shadow: 0 0 0 1000px var(--bg) inset;
+  box-shadow: 0 0 0 1000px var(--bg) inset;
+}
+
+.profile-form button,
+.calories-form button,
+.bmi-form button {
+  margin-top: 0.5rem;
+}
+
+.schedule-edit {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+}
+
+.schedule-edit p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-edit-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.schedule-edit-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.day-label {
+  min-width: 100px;
+  font-weight: 500;
+}
+
+.schedule-select {
+  flex: 1;
+  max-width: 200px;
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+}
+
+#save-schedule-btn {
+  margin-top: 0;
+}
+
+/* Calories / EMI result */
+.calories-result,
+.bmi-result {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.calories-result.hidden,
+.bmi-result.hidden {
+  display: none;
+}
+
+.big-number {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+}
+
+.hint {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-top: 0.5rem;
+}
+
+.calories-form,
+.bmi-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.calories-form label[for],
+.bmi-form label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+input[type="radio"] {
+  width: auto;
+  max-width: none;
+}
+
+/* Log workout form (inline in exercise card) */
+.log-workout-form {
+  padding: 0.75rem 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.log-workout-form input {
+  width: 70px;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.log-workout-form button {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.85rem;
+}
+
+.exercises-list .loading,
+.exercises-list .muted {
+  color: var(--text-muted);
+  padding: 1rem;
+  font-size: 0.9rem;
+}
+
+.hidden {
+  display: none !important;
+}

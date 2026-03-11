@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Diet – {{ day.day_name }}{% endblock %}
+{% block content %}
+<section class="diet-day-screen">
+  <a href="{{ url_for('diet') }}" class="diet-back-link" aria-label="Back to Diet">
+    <span class="diet-back-arrow">←</span> Back to Diet
+  </a>
+  <h1 class="diet-day-screen-title">{{ day.day_name }}{% if day.title %} <span class="diet-day-screen-subtitle">{{ day.title }}</span>{% endif %}</h1>
+
+  <div class="diet-day-meals-grid">
+    <div class="diet-meal-card diet-meal-breakfast">
+      <h4>Breakfast</h4>
+      <p class="diet-meal-content" data-meal="breakfast">{{ day.breakfast or '—' }}</p>
+    </div>
+    <div class="diet-meal-card diet-meal-lunch">
+      <h4>Lunch</h4>
+      <p class="diet-meal-content" data-meal="lunch">{{ day.lunch or '—' }}</p>
+    </div>
+    <div class="diet-meal-card diet-meal-dinner">
+      <h4>Dinner</h4>
+      <p class="diet-meal-content" data-meal="dinner">{{ day.dinner or '—' }}</p>
+    </div>
+    <div class="diet-meal-card diet-meal-snacks">
+      <h4>Snacks</h4>
+      <p class="diet-meal-content" data-meal="snacks">{{ day.snacks or '—' }}</p>
+    </div>
+  </div>
+
+  <div class="diet-edit-wrap">
+    <button type="button" class="btn btn-outline diet-edit-btn" data-day="{{ day.day_name }}">Edit diet plan</button>
+    <form class="diet-edit-form" data-day="{{ day.day_name }}" hidden>
+      <label>Breakfast <textarea name="breakfast" rows="3" placeholder="e.g. Oats, eggs, banana">{{ day.breakfast }}</textarea></label>
+      <label>Lunch <textarea name="lunch" rows="3" placeholder="e.g. Chicken, rice, greens">{{ day.lunch }}</textarea></label>
+      <label>Dinner <textarea name="dinner" rows="3" placeholder="e.g. Fish, sweet potato">{{ day.dinner }}</textarea></label>
+      <label>Snacks <textarea name="snacks" rows="2" placeholder="e.g. Yogurt, nuts">{{ day.snacks }}</textarea></label>
+      <div class="diet-edit-actions">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <button type="button" class="btn btn-outline diet-edit-cancel">Cancel</button>
+      </div>
+    </form>
+  </div>
+</section>
+{% endblock %}

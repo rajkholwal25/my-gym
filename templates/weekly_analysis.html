@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Weekly Analysis{% endblock %}
+{% block content %}
+<section class="page-header">
+  <h1>Weekly Analysis</h1>
+  <p>Your workout stats for this week.</p>
+</section>
+
+<div class="stats-cards" id="stats-cards">
+  <div class="stat-card">
+    <span class="stat-value" id="stat-minutes">0</span>
+    <span class="stat-label">Minutes</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value" id="stat-calories">0</span>
+    <span class="stat-label">Calories burned</span>
+  </div>
+  <div class="stat-card">
+    <span class="stat-value" id="stat-exercises">0</span>
+    <span class="stat-label">Exercises completed</span>
+  </div>
+</div>
+
+<div class="chart-section">
+  <h3>Weekly progress</h3>
+  <canvas id="weekly-chart" width="400" height="200"></canvas>
+</div>
+
+<div class="recent-logs" id="recent-logs">
+  <h3>Recent workouts</h3>
+  <ul class="logs-list" id="logs-list"></ul>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  window.WEEKLY_ANALYSIS = true;
+</script>
+{% endblock %}
