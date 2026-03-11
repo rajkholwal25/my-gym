@@ -23,6 +23,9 @@
       <a href="{{ url_for('calories') }}">CALORIES</a>
       <a href="{{ url_for('bmi') }}">BMI</a>
       {% if user %}
+        {% if user.is_admin %}
+          <a href="{{ url_for('admin_dashboard') }}">ADMIN</a>
+        {% endif %}
         <a href="{{ url_for('profile') }}">PROFILE</a>
         <a href="{{ url_for('logout') }}">LOGOUT</a>
       {% else %}

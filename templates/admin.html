@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block title %}Admin{% endblock %}
+
+{% block content %}
+<section class="section">
+  <div class="section-header admin-header">
+    <div>
+      <h2>Admin Dashboard</h2>
+      <p>Manage your community and the global exercise library.</p>
+    </div>
+    <div class="admin-badge">Admin · {{ user.email }}</div>
+  </div>
+
+  <div class="admin-grid">
+    <div class="card diet-day-card admin-users-card">
+      <div class="diet-day-title">Users</div>
+      {% if users and users|length > 0 %}
+        <div class="admin-table-wrapper">
+          <table class="admin-table">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Goal</th>
+                <th>Joined</th>
+                <th>Role</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+              <tr>
+                <td>{{ u.name or '—' }}</td>
+                <td>{{ u.email }}</td>
+                <td>{{ u.goal or '—' }}</td>
+                <td>{{ u.created_at or '—' }}</td>
+                <td>
+                  {% if u.is_admin %}
+                    <span class="pill pill-admin">Admin</span>
+                  {% else %}
+                    <span class="pill pill-user">User</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if not u.is_admin %}
+                    <button
+                      class="btn btn-sm btn-danger admin-user-delete"
+                      type="button"
+                      data-user-id="{{ u.id }}"
+                    >
+                      Delete
+                    </button>
+                  {% else %}
+                    <span class="muted" style="font-size: 0.8rem;">Protected</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <p class="muted">No users found.</p>
+      {% endif %}
+    </div>
+
+    <div class="card diet-day-card admin-create-ex-card">
+      <div class="diet-day-title">Add global exercise</div>
+      <form id="admin-create-exercise-form" class="profile-form" enctype="multipart/form-data">
+        <div class="form-grid">
+          <div class="field">
+            <label>Name</label>
+            <input name="name" placeholder="e.g. Bench Press" required />
+          </div>
+          <div class="field">
+            <label>Muscle group</label>
+            <select name="muscle_group" required>
+              <option value="">Select</option>
+              {% for mg in muscle_groups %}
+                <option value="{{ mg }}">{{ mg }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="field">
+            <label>Image upload (recommended)</label>
+            <input type="file" name="image_file" accept="image/*" />
+          </div>
+          <div class="field">
+            <label>Or image URL</label>
+            <input name="image_url" placeholder="https://..." />
+          </div>
+          <div class="field" style="grid-column: 1 / -1;">
+            <label>Video URL (optional)</label>
+            <input name="video_url" placeholder="https://..." />
+          </div>
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-primary" type="submit">Add exercise</button>
+          <span id="admin-exercise-create-status" class="muted"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="section admin-global-section">
+    <div class="section-header" style="margin-bottom: 1rem;">
+      <h2>Global exercises</h2>
+      <p>Grouped by muscle. Click a card to open image or video. Use Edit / Delete to manage.</p>
+    </div>
+
+    <div id="admin-exercises-wrap">
+      {% for mg in muscle_groups %}
+        {% set group_exercises = exercises_by_group.get(mg, []) %}
+        <div class="card admin-muscle-card">
+          <div class="admin-muscle-card-title">{{ mg | capitalize }}</div>
+          <div class="exercise-grid admin-exercise-grid">
+            {% for ex in group_exercises %}
+              <article
+                class="exercise-tile"
+                data-id="{{ ex.id }}"
+                data-name="{{ ex.name }}"
+                data-image-url="{{ ex.image_url or '' }}"
+                data-video-url="{{ ex.video_url or '' }}"
+                data-muscle-group="{{ ex.muscle_group }}"
+                tabindex="0"
+                role="button"
+                aria-label="Open {{ ex.name }}"
+              >
+                <img src="{{ ex.image_url }}" alt="{{ ex.name }}" loading="lazy" />
+                <div class="exercise-tile-info">
+                  <div class="exercise-tile-name">{{ ex.name }}</div>
+                </div>
+                <div class="exercise-actions">
+                  <button class="btn btn-sm exercise-edit" data-id="{{ ex.id }}" type="button">Edit</button>
+                  <button class="btn btn-sm btn-danger exercise-delete" data-id="{{ ex.id }}" type="button">Delete</button>
+                </div>
+              </article>
+            {% endfor %}
+          </div>
+          {% if not group_exercises %}
+            <p class="muted admin-muscle-empty">No exercises yet. Add one above and select {{ mg }}.</p>
+          {% endif %}
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+<div id="admin-exercise-edit-modal" class="modal hidden">
+  <div class="modal-backdrop"></div>
+  <div class="modal-card">
+    <div class="modal-header">
+      <h3>Edit global exercise</h3>
+      <button id="close-admin-ex-edit" class="modal-close" type="button">✕</button>
+    </div>
+    <form id="admin-edit-exercise-form" class="profile-form" enctype="multipart/form-data">
+      <input type="hidden" id="admin-edit-ex-id" name="id" />
+      <div class="form-grid">
+        <div class="field">
+          <label>Name</label>
+          <input id="admin-edit-ex-name" name="name" />
+        </div>
+        <div class="field">
+          <label>Muscle group</label>
+          <select id="admin-edit-ex-mg" name="muscle_group">
+            {% for mg in muscle_groups %}
+              <option value="{{ mg }}">{{ mg }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="field">
+          <label>New image upload</label>
+          <input type="file" name="image_file" accept="image/*" />
+        </div>
+        <div class="field">
+          <label>Or image URL</label>
+          <input id="admin-edit-ex-image-url" name="image_url" placeholder="https://..." />
+        </div>
+        <div class="field" style="grid-column: 1 / -1;">
+          <label>Video URL (optional)</label>
+          <input id="admin-edit-ex-video-url" name="video_url" placeholder="https://..." />
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" type="submit">Save</button>
+        <span id="admin-exercise-edit-status" class="muted"></span>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  window.ADMIN_PAGE = true;
+</script>
+{% endblock %}
+

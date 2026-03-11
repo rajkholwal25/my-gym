@@ -19,7 +19,7 @@
       <h2>Your week (preview)</h2>
       <p>
         {% if user %}
-          Your weekly schedule. Click a day to see exercises (admin + your own).
+          Your weekly schedule. Click a day to see exercises.
         {% else %}
           7-day plan cards (demo). Click to explore exercises.
         {% endif %}
@@ -71,8 +71,8 @@
 <section class="section">
   <div class="section-header">
     <div>
-      <h2>{% if user %}Exercises (your + admin){% else %}Exercises (demo){% endif %}</h2>
-      <p>{% if user %}Shows admin exercises + your own exercises only.{% else %}Quick sample cards on the home page.{% endif %}</p>
+      <h2>{% if user %}Exercises{% else %}Exercises (demo){% endif %}</h2>
+      <p>{% if user %}Exercises from the library and ones you added.{% else %}Quick sample cards on the home page.{% endif %}</p>
     </div>
   </div>
   <div class="exercise-grid" id="home-exercises">
@@ -88,12 +88,6 @@
       <h3>Weekly Schedule</h3>
       <p>Plan your week: assign muscle groups to each day and stick to it.</p>
       <a href="{{ url_for('schedule') }}">Go to Schedule →</a>
-    </div>
-    <div class="feature-card">
-      <span class="feature-icon">💪</span>
-      <h3>Exercises</h3>
-      <p>Browse exercises by muscle group with images and video guides.</p>
-      <a href="{{ url_for('schedule') }}">Pick a day →</a>
     </div>
     <div class="feature-card">
       <span class="feature-icon">📊</span>

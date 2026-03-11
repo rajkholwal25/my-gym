@@ -56,6 +56,7 @@ GMAIL_USER = (os.environ.get("GMAIL_USER") or "").strip().lower()
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 EXERCISE_IMAGE_BUCKET = os.environ.get("EXERCISE_IMAGE_BUCKET", "exercise-images").strip()
+ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or "").split(",") if e.strip()}
 
 DAYS = [
     "Monday",
@@ -261,6 +262,40 @@ def login_required(f):
         return f(*args, **kwargs)
 
     return decorated
+
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if "user_id" not in session:
+            flash("Please log in to continue.", "info")
+            return redirect(url_for("login"))
+        user = session.get("user") or {}
+        if not _is_admin_for_user(user):
+            flash("Admin access required.", "error")
+            return redirect(url_for("index"))
+        return f(*args, **kwargs)
+
+    return decorated
+
+
+def _is_admin_for_user(user: dict | None) -> bool:
+    if not user:
+        return False
+    email = (user.get("email") or "").strip().lower()
+    return bool(user.get("is_admin")) or (email in ADMIN_EMAILS)
+
+
+@app.before_request
+def ensure_admin_flag_on_session_user():
+    """Make sure session['user'] always has correct is_admin flag based on email/DB."""
+    user = session.get("user")
+    if not user:
+        return
+    if _is_admin_for_user(user):
+        if not user.get("is_admin"):
+            user["is_admin"] = True
+            session["user"] = user
 
 
 # ---------- Pages ----------
@@ -474,6 +509,57 @@ def bmi():
     return render_template("bmi.html", user=session.get("user"))
 
 
+@app.route("/admin")
+@admin_required
+def admin_dashboard():
+    user = session.get("user") or {}
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        flash("Database not configured. Set SUPABASE_URL and SUPABASE_KEY.", "error")
+        return redirect(url_for("index"))
+    if not SUPABASE_SERVICE_KEY:
+        flash("SUPABASE_SERVICE_KEY is required for the admin dashboard.", "error")
+        return redirect(url_for("index"))
+
+    users = []
+    admin_exercises = []
+    try:
+        users = sb_select(
+            "users_profile",
+            params={"select": "id,name,email,goal,created_at,is_admin", "order": "created_at.desc", "limit": 500},
+            key_override=SUPABASE_SERVICE_KEY,
+        ) or []
+    except Exception:
+        users = []
+    try:
+        admin_exercises = sb_select(
+            "exercises",
+            params={"select": "*", "created_by": "is.null", "order": "name.asc", "limit": 500},
+            key_override=SUPABASE_SERVICE_KEY,
+        ) or []
+    except Exception:
+        admin_exercises = []
+
+    # Group global exercises by muscle_group for admin UI (order: chest, back, biceps, triceps, shoulders, legs, core)
+    muscle_order = [m for m in MUSCLE_GROUPS if m != "rest"]
+    exercises_by_group = {}
+    for mg in muscle_order:
+        exercises_by_group[mg] = [ex for ex in admin_exercises if (ex.get("muscle_group") or "").lower() == mg]
+    # Include any other groups that might exist in DB but not in MUSCLE_GROUPS
+    for ex in admin_exercises:
+        mg = (ex.get("muscle_group") or "").strip().lower()
+        if mg and mg not in exercises_by_group:
+            exercises_by_group[mg] = [e for e in admin_exercises if (e.get("muscle_group") or "").strip().lower() == mg]
+
+    return render_template(
+        "admin.html",
+        user=user,
+        users=users,
+        muscle_groups=[m for m in MUSCLE_GROUPS if m != "rest"],
+        exercises=admin_exercises,
+        exercises_by_group=exercises_by_group,
+    )
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "GET":
@@ -489,7 +575,7 @@ def login():
     try:
         r = sb_select(
             "users_profile",
-            params={"select": "id,name,email,age,weight,height,goal,password_hash", "email": f"eq.{email}", "limit": 1},
+            params={"select": "id,name,email,age,weight,height,goal,password_hash,is_admin", "email": f"eq.{email}", "limit": 1},
             key_override=_service_key_or_anon(),
         )
         if not r:
@@ -499,6 +585,14 @@ def login():
         if not user.get("password_hash") or not check_password_hash(user["password_hash"], password):
             flash("Invalid email or password.", "error")
             return redirect(url_for("login"))
+        # Promote to admin if their email is whitelisted (env) or DB flag is set.
+        is_admin = _is_admin_for_user(user)
+        if is_admin and not user.get("is_admin") and SUPABASE_SERVICE_KEY:
+            try:
+                sb_update("users_profile", {"is_admin": True}, match={"id": user["id"]}, key_override=SUPABASE_SERVICE_KEY)
+                user["is_admin"] = True
+            except Exception:
+                user["is_admin"] = True
         session["user_id"] = str(user["id"])
         session["user"] = {k: v for k, v in user.items() if k != "password_hash"}
         flash(f"Welcome back, {user.get('name') or email}!", "success")
@@ -546,12 +640,14 @@ def register():
             "height": int(float(height)) if height else None,
             "goal": goal or None,
             "password_hash": generate_password_hash(password),
+            "is_admin": True if email in ADMIN_EMAILS else False,
         }
         ins = sb_insert("users_profile", row, key_override=_service_key_or_anon())
         if not ins:
             flash("Could not create account.", "error")
             return redirect(url_for("register"))
         user = ins[0]
+        user["is_admin"] = _is_admin_for_user(user)
         session["user_id"] = str(user["id"])
         session["user"] = {k: v for k, v in user.items() if k != "password_hash"}
         flash("Account created. Welcome!", "success")
@@ -966,6 +1062,150 @@ def api_workout_logs():
         except Exception as e:
             return jsonify({"error": str(e)}), 500
     return jsonify({"error": "Method not allowed"}), 405
+
+
+@app.route("/api/admin/users")
+@admin_required
+def api_admin_users():
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        return jsonify({"error": "Database not configured"}), 500
+    if not SUPABASE_SERVICE_KEY:
+        return jsonify({"error": "SUPABASE_SERVICE_KEY is required"}), 400
+    try:
+        users = sb_select(
+            "users_profile",
+            params={"select": "id,name,email,goal,created_at,is_admin", "order": "created_at.desc", "limit": 1000},
+            key_override=SUPABASE_SERVICE_KEY,
+        )
+        return jsonify(users or [])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/users/<user_id>", methods=["DELETE"])
+@admin_required
+def api_admin_user_delete(user_id):
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        return jsonify({"error": "Database not configured"}), 500
+    if not SUPABASE_SERVICE_KEY:
+        return jsonify({"error": "SUPABASE_SERVICE_KEY is required"}), 400
+    try:
+        # Prevent deleting yourself
+        if str(session.get("user_id")) == str(user_id):
+            return jsonify({"error": "You cannot delete your own admin account from here."}), 400
+        sb_delete("users_profile", match={"id": user_id}, key_override=SUPABASE_SERVICE_KEY)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/exercises", methods=["GET", "POST"])
+@admin_required
+def api_admin_exercises():
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        return jsonify({"error": "Database not configured"}), 500
+    if not SUPABASE_SERVICE_KEY:
+        return jsonify({"error": "SUPABASE_SERVICE_KEY is required"}), 400
+
+    if request.method == "GET":
+        try:
+            rows = sb_select(
+                "exercises",
+                params={"select": "*", "created_by": "is.null", "order": "name.asc", "limit": 1000},
+                key_override=SUPABASE_SERVICE_KEY,
+            )
+            return jsonify(rows or [])
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    # POST: create GLOBAL exercise (created_by = null)
+    try:
+        name = (request.form.get("name") or "").strip()
+        muscle_group = (request.form.get("muscle_group") or "").strip().lower()
+        image_url = (request.form.get("image_url") or "").strip()
+        video_url = (request.form.get("video_url") or "").strip()
+        image_file = request.files.get("image_file")
+
+        if not name or not muscle_group:
+            return jsonify({"error": "name and muscle_group required"}), 400
+        if muscle_group not in [m for m in MUSCLE_GROUPS if m != "rest"]:
+            return jsonify({"error": "Invalid muscle_group"}), 400
+
+        final_image_url = ""
+        if image_file and getattr(image_file, "filename", ""):
+            # Store under the admin user's folder for uniqueness
+            admin_id = session.get("user_id") or "admin"
+            final_image_url = upload_exercise_image_to_storage(user_id=str(admin_id), file_storage=image_file)
+        else:
+            final_image_url = image_url
+        if not final_image_url:
+            return jsonify({"error": "Provide an image upload or image_url"}), 400
+
+        row = {
+            "name": name,
+            "muscle_group": muscle_group,
+            "image_url": final_image_url,
+            "video_url": video_url or None,
+            "difficulty": None,
+            "equipment": None,
+            "created_by": None,  # GLOBAL
+        }
+        ins = sb_insert("exercises", row, key_override=SUPABASE_SERVICE_KEY)
+        return jsonify(ins[0] if ins else {}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/admin/exercises/<ex_id>", methods=["PUT", "DELETE"])
+@admin_required
+def api_admin_exercise_detail(ex_id):
+    if not SUPABASE_REST or not SUPABASE_KEY:
+        return jsonify({"error": "Database not configured"}), 500
+    if not SUPABASE_SERVICE_KEY:
+        return jsonify({"error": "SUPABASE_SERVICE_KEY is required"}), 400
+    try:
+        rows = sb_select(
+            "exercises",
+            params={"select": "id,created_by", "id": f"eq.{ex_id}", "limit": 1},
+            key_override=SUPABASE_SERVICE_KEY,
+        ) or []
+        if not rows:
+            return jsonify({"error": "Not found"}), 404
+        ex = rows[0]
+        if ex.get("created_by") is not None:
+            return jsonify({"error": "Not a global (admin) exercise"}), 400
+
+        if request.method == "DELETE":
+            sb_delete("exercises", match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
+            return jsonify({"ok": True})
+
+        # PUT: update fields
+        name = (request.form.get("name") or "").strip()
+        muscle_group = (request.form.get("muscle_group") or "").strip().lower()
+        image_url = (request.form.get("image_url") or "").strip()
+        video_url = (request.form.get("video_url") or "").strip()
+        image_file = request.files.get("image_file")
+
+        updates = {}
+        if name:
+            updates["name"] = name
+        if muscle_group:
+            if muscle_group not in [m for m in MUSCLE_GROUPS if m != "rest"]:
+                return jsonify({"error": "Invalid muscle_group"}), 400
+            updates["muscle_group"] = muscle_group
+        if image_file and getattr(image_file, "filename", ""):
+            admin_id = session.get("user_id") or "admin"
+            updates["image_url"] = upload_exercise_image_to_storage(user_id=str(admin_id), file_storage=image_file)
+        elif image_url:
+            updates["image_url"] = image_url
+        updates["video_url"] = video_url or None
+
+        if not updates:
+            return jsonify({"error": "Nothing to update"}), 400
+        out = sb_update("exercises", updates, match={"id": ex_id}, key_override=SUPABASE_SERVICE_KEY)
+        return jsonify(out[0] if out else {"ok": True})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/weekly-stats")

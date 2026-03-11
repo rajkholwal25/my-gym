@@ -554,6 +554,126 @@
     }
   }
 
+  // Admin page: manage global exercises
+  if (window.ADMIN_PAGE) {
+    var aForm = document.getElementById("admin-create-exercise-form");
+    var aStatusEl = document.getElementById("admin-exercise-create-status");
+    var aGrid = document.getElementById("admin-exercises-wrap");
+    var aEditModal = document.getElementById("admin-exercise-edit-modal");
+    var aEditForm = document.getElementById("admin-edit-exercise-form");
+    var aEditStatus = document.getElementById("admin-exercise-edit-status");
+    var aCloseEditBtn = document.getElementById("close-admin-ex-edit");
+
+    if (aForm) {
+      aForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        if (aStatusEl) aStatusEl.textContent = "Saving…";
+        var fd = new FormData(aForm);
+        fetch("/api/admin/exercises", { method: "POST", body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data && data.error) { if (aStatusEl) aStatusEl.textContent = data.error; return; }
+            if (aStatusEl) aStatusEl.textContent = "Added.";
+            window.location.reload();
+          })
+          .catch(function () { if (aStatusEl) aStatusEl.textContent = "Failed to save."; });
+      });
+    }
+
+    var userTable = document.querySelector(".admin-users-card");
+
+    // Delete user
+    if (userTable) {
+      userTable.addEventListener("click", function (e) {
+        var delBtn = e.target.closest(".admin-user-delete");
+        if (!delBtn) return;
+        e.preventDefault();
+        var id = delBtn.getAttribute("data-user-id");
+        if (!id) return;
+        if (!confirm("Delete this user and all their data?")) return;
+        fetch("/api/admin/users/" + encodeURIComponent(id), { method: "DELETE" })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data && data.error) { alert(data.error); return; }
+            window.location.reload();
+          })
+          .catch(function () { alert("Failed to delete user."); });
+      });
+    }
+
+    // Global exercises grid
+    if (aGrid) {
+      aGrid.addEventListener("click", function (e) {
+        var delBtn = e.target.closest(".exercise-delete");
+        if (delBtn) {
+          e.preventDefault();
+          var delId = delBtn.getAttribute("data-id");
+          if (!delId) return;
+          if (!confirm("Delete this global exercise?")) return;
+          fetch("/api/admin/exercises/" + encodeURIComponent(delId), { method: "DELETE" })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              if (data && data.error) { alert(data.error); return; }
+              window.location.reload();
+            })
+            .catch(function () { alert("Failed to delete."); });
+          return;
+        }
+
+        var editBtn = e.target.closest(".exercise-edit");
+        if (editBtn) {
+          e.preventDefault();
+          var tileForEdit = editBtn.closest(".exercise-tile");
+          try {
+            var exEdit = exerciseFromTile(tileForEdit);
+            if (!exEdit) return;
+            document.getElementById("admin-edit-ex-id").value = exEdit.id || "";
+            document.getElementById("admin-edit-ex-name").value = exEdit.name || "";
+            var mg = (tileForEdit.dataset && tileForEdit.dataset.muscleGroup) ? tileForEdit.dataset.muscleGroup : (exEdit.muscle_group || "");
+            document.getElementById("admin-edit-ex-mg").value = (mg || "").toLowerCase();
+            document.getElementById("admin-edit-ex-image-url").value = exEdit.image_url || "";
+            document.getElementById("admin-edit-ex-video-url").value = exEdit.video_url || "";
+            if (aEditStatus) aEditStatus.textContent = "";
+            if (aEditModal) aEditModal.classList.remove("hidden");
+          } catch (err) {}
+          return;
+        }
+
+        var tile = e.target.closest(".exercise-tile");
+        if (!tile) return;
+        if (e.target.closest(".exercise-edit") || e.target.closest(".exercise-delete")) return;
+        try {
+          var ex = exerciseFromTile(tile);
+          if (!ex) return;
+          openImageThenVideo(ex);
+        } catch (err) {}
+      });
+    }
+
+    if (aCloseEditBtn && aEditModal) {
+      aCloseEditBtn.addEventListener("click", function () { aEditModal.classList.add("hidden"); });
+      aEditModal.querySelector(".modal-backdrop").addEventListener("click", function () { aEditModal.classList.add("hidden"); });
+    }
+
+    if (aEditForm) {
+      aEditForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var id = document.getElementById("admin-edit-ex-id").value;
+        if (!id) return;
+        if (aEditStatus) aEditStatus.textContent = "Saving…";
+        var fd = new FormData(aEditForm);
+        fetch("/api/admin/exercises/" + encodeURIComponent(id), { method: "PUT", body: fd })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            if (data && data.error) { if (aEditStatus) aEditStatus.textContent = data.error; return; }
+            if (aEditStatus) aEditStatus.textContent = "Saved.";
+            window.location.reload();
+          })
+          .catch(function () { if (aEditStatus) aEditStatus.textContent = "Failed to save."; });
+      });
+    }
+  }
+
   // Schedule day page: click card -> video or image
   if (window.SCHEDULE_DAY_PAGE) {
     var sGrid = document.getElementById("schedule-day-exercises");

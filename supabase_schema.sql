@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS users_profile (
   name TEXT,
   email TEXT UNIQUE NOT NULL,
   password_hash TEXT,
+  is_admin BOOLEAN NOT NULL DEFAULT FALSE,
   age INTEGER,
   weight INTEGER,
   height INTEGER,
@@ -23,7 +24,8 @@ CREATE TABLE IF NOT EXISTS exercises (
   image_url TEXT,
   video_url TEXT,
   difficulty TEXT,
-  equipment TEXT
+  equipment TEXT,
+  created_by UUID REFERENCES users_profile(id) ON DELETE SET NULL
 );
 
 -- 3. weekly_schedule
