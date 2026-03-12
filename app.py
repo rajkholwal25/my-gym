@@ -56,6 +56,7 @@ GMAIL_USER = (os.environ.get("GMAIL_USER") or "").strip().lower()
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 EXERCISE_IMAGE_BUCKET = os.environ.get("EXERCISE_IMAGE_BUCKET", "exercise-images").strip()
+EXERCISE_VIDEO_BUCKET = os.environ.get("EXERCISE_VIDEO_BUCKET", "exercise-videos").strip()
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or "").split(",") if e.strip()}
 
 DAYS = [
@@ -201,8 +202,44 @@ def upload_exercise_image_to_storage(*, user_id: str, file_storage):
         "x-upsert": "true",
     }
     r = requests.put(url, headers=headers, data=file_storage.stream.read(), timeout=60)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.HTTPError:
+        raise ValueError(f"Storage image upload failed ({r.status_code}): {r.text}") from None
     public_url = f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{EXERCISE_IMAGE_BUCKET}/{obj_name}"
+    return public_url
+
+
+def upload_exercise_video_to_storage(*, user_id: str, file_storage):
+    """Upload a video file to Supabase Storage and return its public URL."""
+    if not SUPABASE_URL:
+        raise ValueError("SUPABASE_URL must be set in .env")
+    if not SUPABASE_SERVICE_KEY:
+        raise ValueError("SUPABASE_SERVICE_KEY must be set in .env to upload to storage")
+    if not file_storage or not getattr(file_storage, "filename", ""):
+        raise ValueError("No file provided")
+
+    filename = file_storage.filename or "video"
+    ext = os.path.splitext(filename)[1].lower()
+    # Keep this permissive: browsers commonly record mp4/webm/mov
+    if ext not in [".mp4", ".webm", ".mov", ".m4v", ".ogg", ".ogv"]:
+        raise ValueError("Only mp4/webm/mov/m4v/ogg videos are allowed")
+
+    content_type = file_storage.mimetype or mimetypes.types_map.get(ext) or "application/octet-stream"
+    obj_name = f"user_{user_id}/{uuid.uuid4().hex}{ext}"
+    url = f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/{EXERCISE_VIDEO_BUCKET}/{obj_name}"
+    headers = {
+        "apikey": SUPABASE_SERVICE_KEY,
+        "Authorization": f"Bearer {SUPABASE_SERVICE_KEY}",
+        "Content-Type": content_type,
+        "x-upsert": "true",
+    }
+    r = requests.put(url, headers=headers, data=file_storage.stream.read(), timeout=300)
+    try:
+        r.raise_for_status()
+    except requests.HTTPError:
+        raise ValueError(f"Storage video upload failed ({r.status_code}): {r.text}") from None
+    public_url = f"{SUPABASE_URL.rstrip('/')}/storage/v1/object/public/{EXERCISE_VIDEO_BUCKET}/{obj_name}"
     return public_url
 
 
@@ -973,6 +1010,7 @@ def api_my_exercises():
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        video_file = request.files.get("video_file")
 
         if not name or not muscle_group:
             return jsonify({"error": "name and muscle_group required"}), 400
@@ -988,11 +1026,17 @@ def api_my_exercises():
         if not final_image_url:
             return jsonify({"error": "Provide an image upload or image_url"}), 400
 
+        final_video_url = ""
+        if video_file and getattr(video_file, "filename", ""):
+            final_video_url = upload_exercise_video_to_storage(user_id=user_id, file_storage=video_file)
+        else:
+            final_video_url = video_url
+
         row = {
             "name": name,
             "muscle_group": muscle_group,
             "image_url": final_image_url,
-            "video_url": video_url or None,
+            "video_url": final_video_url or None,
             "difficulty": None,
             "equipment": None,
             "created_by": user_id,
@@ -1036,6 +1080,7 @@ def api_my_exercise_detail(ex_id):
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        video_file = request.files.get("video_file")
 
         updates = {}
         if name:
@@ -1048,8 +1093,11 @@ def api_my_exercise_detail(ex_id):
             updates["image_url"] = upload_exercise_image_to_storage(user_id=user_id, file_storage=image_file)
         elif image_url:
             updates["image_url"] = image_url
-        # video_url can be cleared by sending empty string
-        updates["video_url"] = video_url or None
+        if video_file and getattr(video_file, "filename", ""):
+            updates["video_url"] = upload_exercise_video_to_storage(user_id=user_id, file_storage=video_file)
+        else:
+            # video_url can be cleared by sending empty string
+            updates["video_url"] = video_url or None
 
         if not updates:
             return jsonify({"error": "Nothing to update"}), 400
@@ -1161,6 +1209,7 @@ def api_admin_exercises():
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        video_file = request.files.get("video_file")
         try:
             sequence_order = int(request.form.get("sequence_order") or 0)
         except ValueError:
@@ -1181,11 +1230,18 @@ def api_admin_exercises():
         if not final_image_url:
             return jsonify({"error": "Provide an image upload or image_url"}), 400
 
+        final_video_url = ""
+        if video_file and getattr(video_file, "filename", ""):
+            admin_id = session.get("user_id") or "admin"
+            final_video_url = upload_exercise_video_to_storage(user_id=str(admin_id), file_storage=video_file)
+        else:
+            final_video_url = video_url
+
         row = {
             "name": name,
             "muscle_group": muscle_group,
             "image_url": final_image_url,
-            "video_url": video_url or None,
+            "video_url": final_video_url or None,
             "difficulty": None,
             "equipment": None,
             "created_by": None,  # GLOBAL
@@ -1225,6 +1281,7 @@ def api_admin_exercise_detail(ex_id):
         image_url = (request.form.get("image_url") or "").strip()
         video_url = (request.form.get("video_url") or "").strip()
         image_file = request.files.get("image_file")
+        video_file = request.files.get("video_file")
         try:
             sequence_order = int(request.form.get("sequence_order") or 0)
         except ValueError:
@@ -1242,7 +1299,11 @@ def api_admin_exercise_detail(ex_id):
             updates["image_url"] = upload_exercise_image_to_storage(user_id=str(admin_id), file_storage=image_file)
         elif image_url:
             updates["image_url"] = image_url
-        updates["video_url"] = video_url or None
+        if video_file and getattr(video_file, "filename", ""):
+            admin_id = session.get("user_id") or "admin"
+            updates["video_url"] = upload_exercise_video_to_storage(user_id=str(admin_id), file_storage=video_file)
+        else:
+            updates["video_url"] = video_url or None
         # sequence_order: only send if DB has the column (run supabase_show_on_home.sql); else 400
         updates_with_seq = {**updates, "sequence_order": sequence_order}
 

@@ -30,6 +30,10 @@
       <label>Video URL (optional)
         <input type="url" name="video_url" placeholder="https://...mp4 or YouTube link" />
       </label>
+      <div class="muted" style="margin-top:-0.5rem;margin-bottom:1rem;">OR</div>
+      <label>Upload video (optional)
+        <input type="file" name="video_file" accept="video/*" />
+      </label>
       <button type="submit" class="btn btn-primary">Add exercise</button>
     </form>
     <p class="muted" id="exercise-create-status" style="margin-top:0.75rem;"></p>
@@ -95,6 +99,10 @@
       <label>Video URL (optional)
         <input type="url" name="video_url" id="edit-ex-video-url" placeholder="https://..." />
       </label>
+      <div class="muted" style="margin-top:-0.5rem;margin-bottom:1rem;">OR</div>
+      <label>Upload video (optional)
+        <input type="file" name="video_file" accept="video/*" />
+      </label>
       <button type="submit" class="btn btn-primary">Save changes</button>
       <p class="muted" id="exercise-edit-status" style="margin-top:0.75rem;"></p>
     </form>
@@ -107,6 +115,9 @@
     <button type="button" class="modal-close" id="close-video">×</button>
     <div class="video-wrapper">
       <video id="exercise-video" controls playsinline></video>
+      <div id="youtube-embed-wrap" class="youtube-embed-wrap hidden">
+        <iframe id="youtube-embed" title="Exercise video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
     </div>
     <p class="video-title" id="video-title"></p>
   </div>

@@ -140,6 +140,8 @@
   // Video modal
   var videoModal = document.getElementById("video-modal");
   var exerciseVideo = document.getElementById("exercise-video");
+  var youtubeEmbedWrap = document.getElementById("youtube-embed-wrap");
+  var youtubeEmbed = document.getElementById("youtube-embed");
   var videoTitleEl = document.getElementById("video-title");
   var closeVideoBtn = document.getElementById("close-video");
   var imageModal = document.getElementById("image-modal");
@@ -149,16 +151,42 @@
 
   var pendingVideoTimer = null;
 
+  function getYoutubeEmbedUrl(url) {
+    if (!url || typeof url !== "string") return null;
+    var u = url.trim();
+    var m = u.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    return m ? "https://www.youtube.com/embed/" + m[1] + "?autoplay=1" : null;
+  }
+
+  function isYoutubeUrl(url) {
+    return getYoutubeEmbedUrl(url) !== null;
+  }
+
   function openVideoModal(ex, delayMs) {
     if (!ex || !ex.video_url) return;
-    delayMs = typeof delayMs === "number" ? delayMs : 2000;
-    videoTitleEl.textContent = ex.name || "";
-    exerciseVideo.src = ex.video_url;
-    // Play after delay
-    setTimeout(function () {
-      try { exerciseVideo.play(); } catch (e) {}
-    }, delayMs);
-    if (videoModal) videoModal.classList.remove("hidden");
+    delayMs = typeof delayMs === "number" ? delayMs : 0;
+    if (videoTitleEl) videoTitleEl.textContent = ex.name || "";
+
+    var embedUrl = getYoutubeEmbedUrl(ex.video_url);
+    if (embedUrl && youtubeEmbedWrap && youtubeEmbed) {
+      if (exerciseVideo) { exerciseVideo.src = ""; exerciseVideo.style.display = "none"; }
+      youtubeEmbed.src = embedUrl;
+      youtubeEmbedWrap.classList.remove("hidden");
+      if (videoModal) videoModal.classList.remove("hidden");
+    } else {
+      if (youtubeEmbedWrap) { youtubeEmbedWrap.classList.add("hidden"); youtubeEmbed.src = ""; }
+      if (youtubeEmbed) youtubeEmbed.src = "";
+      if (exerciseVideo) {
+        exerciseVideo.style.display = "";
+        exerciseVideo.src = ex.video_url;
+        if (delayMs > 0) {
+          setTimeout(function () { try { exerciseVideo.play(); } catch (e) {} }, delayMs);
+        } else {
+          try { exerciseVideo.play(); } catch (e) {}
+        }
+      }
+      if (videoModal) videoModal.classList.remove("hidden");
+    }
   }
 
   function openImageModal(ex) {
@@ -204,7 +232,9 @@
   }
 
   function closeVideoModal() {
-    if (exerciseVideo) { exerciseVideo.pause(); exerciseVideo.src = ""; }
+    if (exerciseVideo) { exerciseVideo.pause(); exerciseVideo.src = ""; exerciseVideo.style.display = ""; }
+    if (youtubeEmbed) youtubeEmbed.src = "";
+    if (youtubeEmbedWrap) youtubeEmbedWrap.classList.add("hidden");
     if (videoModal) videoModal.classList.add("hidden");
   }
 
@@ -492,6 +522,24 @@
       });
     }
 
+    // Drag & drop support for video upload
+    (function () {
+      var dropTargets = document.querySelectorAll('input[type="file"][name="video_file"]');
+      if (!dropTargets || dropTargets.length === 0) return;
+      dropTargets.forEach(function (inp) {
+        inp.classList.add("file-drop");
+        inp.addEventListener("dragover", function (e) { e.preventDefault(); inp.classList.add("is-dragover"); });
+        inp.addEventListener("dragleave", function () { inp.classList.remove("is-dragover"); });
+        inp.addEventListener("drop", function (e) {
+          e.preventDefault();
+          inp.classList.remove("is-dragover");
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            inp.files = e.dataTransfer.files;
+          }
+        });
+      });
+    })();
+
     if (grid) {
       grid.addEventListener("click", function (e) {
         var delBtn = e.target.closest(".exercise-delete");
@@ -589,6 +637,24 @@
           .catch(function () { if (aStatusEl) aStatusEl.textContent = "Failed to save."; });
       });
     }
+
+    // Drag & drop support for video upload (admin forms)
+    (function () {
+      var dropTargets = document.querySelectorAll('#admin-create-exercise-form input[type="file"][name="video_file"], #admin-edit-exercise-form input[type="file"][name="video_file"]');
+      if (!dropTargets || dropTargets.length === 0) return;
+      dropTargets.forEach(function (inp) {
+        inp.classList.add("file-drop");
+        inp.addEventListener("dragover", function (e) { e.preventDefault(); inp.classList.add("is-dragover"); });
+        inp.addEventListener("dragleave", function () { inp.classList.remove("is-dragover"); });
+        inp.addEventListener("drop", function (e) {
+          e.preventDefault();
+          inp.classList.remove("is-dragover");
+          if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+            inp.files = e.dataTransfer.files;
+          }
+        });
+      });
+    })();
 
     var userTable = document.querySelector(".admin-users-card");
 

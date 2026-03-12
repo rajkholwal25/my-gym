@@ -80,6 +80,30 @@
   </div>
 </section>
 
+<div class="modal video-modal hidden" id="video-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-video">×</button>
+    <div class="video-wrapper">
+      <video id="exercise-video" controls playsinline></video>
+      <div id="youtube-embed-wrap" class="youtube-embed-wrap hidden">
+        <iframe id="youtube-embed" title="Exercise video" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+      </div>
+    </div>
+    <p class="video-title" id="video-title"></p>
+  </div>
+</div>
+<div class="modal hidden" id="image-modal">
+  <div class="modal-backdrop"></div>
+  <div class="modal-content">
+    <button type="button" class="modal-close" id="close-image">×</button>
+    <div class="video-wrapper" style="background:transparent;">
+      <img id="exercise-image" alt="" style="width:100%;display:block;border-radius:12px;" />
+    </div>
+    <p class="video-title" id="image-title"></p>
+  </div>
+</div>
+
 <section class="features">
   <h2>What you get</h2>
   <div class="feature-cards">
