@@ -50,7 +50,7 @@
         </div>
       </a>
       {% else %}
-      <article class="schedule-card" data-day="{{ day }}">
+      <a href="{{ url_for('login_required_page') }}" class="schedule-card schedule-card-link" data-day="{{ day }}">
         <div class="schedule-card-inner">
           <h3 class="schedule-day">{{ day }}</h3>
           <p class="schedule-muscle">chest</p>
@@ -62,7 +62,7 @@
             />
           </div>
         </div>
-      </article>
+      </a>
       {% endif %}
     {% endfor %}
   </div>

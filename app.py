@@ -351,6 +351,12 @@ def index():
     return render_template("index.html", user=user, schedule=schedule_data)
 
 
+@app.route("/login-required")
+def login_required_page():
+    """Shown when a guest clicks schedule/exercise card — ask them to login and make their schedule."""
+    return render_template("login_required.html", user=session.get("user"))
+
+
 @app.route("/schedule")
 def schedule():
     user = session.get("user")

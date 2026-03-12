@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}Login required{% endblock %}
+{% block content %}
+<section class="section page-header">
+  <div class="login-required-card">
+    <h1>Please create an account or login first</h1>
+    <p>Sign up or sign in to view your schedule and make your weekly plan.</p>
+    <a href="{{ url_for('login') }}" class="btn btn-primary">Login / Sign up</a>
+  </div>
+</section>
+{% endblock %}
