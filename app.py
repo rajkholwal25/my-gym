@@ -1401,9 +1401,13 @@ def api_weekly_stats():
         return jsonify({"error": str(e)}), 500
 
 
+import os
+
 if __name__ == "__main__":
     if GMAIL_USER and GMAIL_APP_PASSWORD:
         print("Password reset: Gmail configured — any user can receive reset link.")
     else:
-        print("Password reset: Gmail not set — only one email can receive. Set GMAIL_USER and GMAIL_APP_PASSWORD in .env for all users.")
-    app.run(debug=True, port=5000)
+        print("Password reset: Gmail not set — only one email can receive.")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
