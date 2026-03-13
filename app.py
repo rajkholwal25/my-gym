@@ -267,7 +267,11 @@ def _send_reset_via_resend(*, to_email: str, reset_url: str):
         "User-Agent": "MyGym-App/1.0",
     }
     r = requests.post("https://api.resend.com/emails", headers=headers, json=payload, timeout=30)
-    r.raise_for_status()
+    try:
+        r.raise_for_status()
+    except requests.HTTPError:
+        # Resend often returns useful JSON text explaining why it blocked the sender/domain.
+        raise ValueError(f"Resend send failed ({r.status_code}): {r.text}") from None
     return r.json()
 
 
@@ -289,11 +293,14 @@ def send_reset_email(*, to_email: str, reset_url: str):
     """Send reset link. On production (non-localhost) prefer Resend (HTTP) over Gmail (SMTP) so it works from Render."""
     is_production = APP_BASE_URL and "127.0.0.1" not in APP_BASE_URL and "localhost" not in (APP_BASE_URL or "")
     if is_production and RESEND_API_KEY and RESEND_FROM_EMAIL:
+        print(f"[forgot-password] send_reset_email: using resend from={RESEND_FROM_EMAIL!r} to={to_email!r}")
         _send_reset_via_resend(to_email=to_email, reset_url=reset_url)
         return
     if GMAIL_USER and GMAIL_APP_PASSWORD:
+        print(f"[forgot-password] send_reset_email: using gmail to={to_email!r}")
         _send_reset_via_gmail(to_email=to_email, reset_url=reset_url)
         return
+    print(f"[forgot-password] send_reset_email: fallback resend from={RESEND_FROM_EMAIL!r} to={to_email!r}")
     _send_reset_via_resend(to_email=to_email, reset_url=reset_url)
 
 
@@ -763,30 +770,48 @@ def forgot_password():
             try:
                 send_reset_email(to_email=email, reset_url=reset_url)
             except Exception as e:
-                print(f"[forgot-password] Background send failed: {type(e).__name__}: {e}")
+                print(f"[forgot-password] Background send failed: {type(e).__name__}: {e}\n{traceback.format_exc()}")
 
         threading.Thread(target=_send_in_background, daemon=True).start()
         flash("If that email exists, a reset link has been sent.", "success")
         return redirect(url_for("login"))
     except requests.HTTPError as e:
         err_body = ""
+        err_url = ""
         if e.response is not None:
             try:
                 err_body = e.response.text[:500] if e.response.text else ""
             except Exception:
                 pass
-        print(f"[forgot-password] HTTPError: {e.response.status_code if e.response else '?'} {err_body}")
-        if e.response is not None and e.response.status_code == 403:
+            try:
+                err_url = str(getattr(e.response, "url", "") or "")
+            except Exception:
+                pass
+        print(
+            f"[forgot-password] HTTPError: status={e.response.status_code if e.response else '?'} url={err_url!r} body={err_body}"
+        )
+
+        # Distinguish DB failures vs email provider failures (both raise HTTPError).
+        if err_url and "api.resend.com" in err_url:
             flash(
-                "Reset email could not be sent (403). Add and verify your domain at resend.com/domains, "
-                "or set GMAIL_USER and GMAIL_APP_PASSWORD in Environment for all users.",
+                "Reset email could not be sent. Your Resend sender is blocked. "
+                "Open Render logs and search [forgot-password] to see the exact Resend reason.",
                 "error",
             )
-        elif e.response is not None and e.response.status_code == 400:
-            flash(
-                "Server config error: password reset columns may be missing. Run supabase_add_reset_token_columns.sql in Supabase SQL Editor.",
-                "error",
-            )
+        elif err_url and "supabase.co/rest" in err_url:
+            if e.response is not None and e.response.status_code in (401, 403):
+                flash(
+                    "Server config error: Supabase permission denied for password reset. "
+                    "On Render, set SUPABASE_SERVICE_KEY (service_role) so the server can update reset tokens.",
+                    "error",
+                )
+            elif e.response is not None and e.response.status_code == 400:
+                flash(
+                    "Server config error: password reset columns may be missing. Run supabase_add_reset_token_columns.sql in Supabase SQL Editor.",
+                    "error",
+                )
+            else:
+                flash("Database error while creating reset link. Please try again later.", "error")
         else:
             flash("Could not send reset link. Please try again later.", "error")
         return redirect(url_for("forgot_password"))
