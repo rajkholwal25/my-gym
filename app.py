@@ -8,6 +8,8 @@ import hashlib
 import secrets
 import smtplib
 import mimetypes
+import threading
+import traceback
 import uuid
 from pathlib import Path
 from email.mime.text import MIMEText
@@ -284,9 +286,13 @@ def _send_reset_via_gmail(*, to_email: str, reset_url: str):
 
 
 def send_reset_email(*, to_email: str, reset_url: str):
-    """Send reset link to the user who requested it. Prefer Gmail so every user can receive (no domain)."""
+    """Send reset link. On production (non-localhost) prefer Resend (HTTP) over Gmail (SMTP) so it works from Render."""
+    is_production = APP_BASE_URL and "127.0.0.1" not in APP_BASE_URL and "localhost" not in (APP_BASE_URL or "")
+    if is_production and RESEND_API_KEY and RESEND_FROM_EMAIL:
+        _send_reset_via_resend(to_email=to_email, reset_url=reset_url)
+        return
     if GMAIL_USER and GMAIL_APP_PASSWORD:
-        _send_reset_via_gmail(to_email=to_email, reset_url=reset_url)  # to_email = that user's email
+        _send_reset_via_gmail(to_email=to_email, reset_url=reset_url)
         return
     _send_reset_via_resend(to_email=to_email, reset_url=reset_url)
 
@@ -752,7 +758,14 @@ def forgot_password():
             key_override=_service_key_or_anon(),
         )
         reset_url = f"{APP_BASE_URL}/reset-password?token={token}&email={email}"
-        send_reset_email(to_email=email, reset_url=reset_url)
+
+        def _send_in_background():
+            try:
+                send_reset_email(to_email=email, reset_url=reset_url)
+            except Exception as e:
+                print(f"[forgot-password] Background send failed: {type(e).__name__}: {e}")
+
+        threading.Thread(target=_send_in_background, daemon=True).start()
         flash("If that email exists, a reset link has been sent.", "success")
         return redirect(url_for("login"))
     except requests.HTTPError as e:
@@ -777,8 +790,12 @@ def forgot_password():
         else:
             flash("Could not send reset link. Please try again later.", "error")
         return redirect(url_for("forgot_password"))
+    except requests.RequestException as e:
+        print(f"[forgot-password] RequestException: {type(e).__name__}: {e}\n{traceback.format_exc()}")
+        flash("Network or database error. Please try again in a moment.", "error")
+        return redirect(url_for("forgot_password"))
     except Exception as e:
-        print(f"[forgot-password] Error: {type(e).__name__}: {e}")
+        print(f"[forgot-password] Error: {type(e).__name__}: {e}\n{traceback.format_exc()}")
         flash("Could not send reset link. Please try again or contact support.", "error")
         return redirect(url_for("forgot_password"))
 

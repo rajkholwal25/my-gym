@@ -26,7 +26,7 @@ git push origin main
 | **Branch** | `main` (or your default branch) |
 | **Runtime** | **Python 3** |
 | **Build Command** | `pip install -r requirements.txt` |
-| **Start Command** | `gunicorn app:app --bind 0.0.0.0:$PORT` |
+| **Start Command** | `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120` |
 
 5. Click **Advanced** and add **Environment Variables** (same names as in your `.env`; use your real values, not the placeholders):
 
@@ -47,7 +47,7 @@ git push origin main
 
 6. Click **Create Web Service**.
 
-Render will clone the repo, run `pip install -r requirements.txt`, then start with `gunicorn --bind 0.0.0.0:$PORT app:app`. Your app will get a URL like `https://my-gym-xxxx.onrender.com`.
+Render will clone the repo, run `pip install -r requirements.txt`, then start with `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120`. Your app will get a URL like `https://my-gym-xxxx.onrender.com`.
 
 ## 3. After first deploy
 
@@ -68,7 +68,7 @@ Render will clone the repo, run `pip install -r requirements.txt`, then start wi
 - **Cause:** Render expects the app to listen on **`0.0.0.0:$PORT`**. It sets `PORT` itself (e.g. 10000). If the app listens on another port or only on 127.0.0.1, Render sees no open port and kills the service.
 - **Fix:**
   1. **Start Command** must be exactly:  
-     `gunicorn app:app --bind 0.0.0.0:$PORT`  
+     `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120`  
      (Do **not** run `python app.py` on Render.)
   2. **Do not** set **`PORT`** in Render’s Environment. Let Render set it.
   3. **Do not** change the port in `app.py` (the `if __name__ == "__main__"` block). That block is only for local `python app.py`; on Render only gunicorn runs and it uses `$PORT`.
@@ -104,4 +104,4 @@ That block runs **only** when you run `python app.py` locally. On Render, **guni
 
 ---
 
-**Summary:** New → Web Service → connect GitHub repo → Build: `pip install -r requirements.txt` → Start: `gunicorn app:app --bind 0.0.0.0:$PORT` → set **APP_BASE_URL** to your Render URL → add other env vars → Create Web Service.
+**Summary:** New → Web Service → connect GitHub repo → Build: `pip install -r requirements.txt` → Start: `gunicorn app:app --bind 0.0.0.0:$PORT --timeout 120` → set **APP_BASE_URL** to your Render URL → add other env vars → Create Web Service.
