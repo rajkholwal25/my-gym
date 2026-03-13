@@ -75,14 +75,15 @@
           return;
         }
         exercisesList.innerHTML = list.map(function (ex) {
-          var img = (ex.image_url || "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop").replace(/&/g, "&amp;");
+          var fallbackImg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop";
+          var img = (ex.image_url || fallbackImg).replace(/&/g, "&amp;");
           var name = (ex.name || "Exercise").replace(/</g, "&lt;");
           var hasVideo = ex.video_url;
           var exJson = JSON.stringify(ex).replace(/"/g, "&quot;");
           return (
             "<div class=\"exercise-card\" data-exercise=\"" + exJson + "\">" +
               "<div class=\"exercise-card-image\">" +
-                "<img src=\"" + img + "\" alt=\"\" loading=\"lazy\" />" +
+                "<img src=\"" + img + "\" alt=\"\" loading=\"lazy\" onerror=\"this.onerror=null;this.src='" + fallbackImg + "';\" />" +
                 (hasVideo ? "<div class=\"play-overlay\"><span>▶</span></div>" : "") +
               "</div>" +
               "<div class=\"exercise-card-name\">" + name + "</div>" +
@@ -148,8 +149,10 @@
   var exerciseImage = document.getElementById("exercise-image");
   var imageTitleEl = document.getElementById("image-title");
   var closeImageBtn = document.getElementById("close-image");
+  var videoCountdown = document.getElementById("video-countdown");
 
   var pendingVideoTimer = null;
+  var videoCountdownTimer = null;
 
   function getYoutubeEmbedUrl(url) {
     if (!url || typeof url !== "string") return null;
@@ -199,6 +202,22 @@
   function openImageThenVideo(ex) {
     // Always show image first. If video exists, open video after 3s of image showing.
     if (pendingVideoTimer) { clearTimeout(pendingVideoTimer); pendingVideoTimer = null; }
+    if (videoCountdownTimer) { clearInterval(videoCountdownTimer); videoCountdownTimer = null; }
+    if (videoCountdown) {
+      var seconds = 3;
+      videoCountdown.style.display = "";
+      videoCountdown.textContent = "Video will start in " + seconds + " seconds…";
+      videoCountdownTimer = setInterval(function () {
+        seconds -= 1;
+        if (seconds <= 0) {
+          clearInterval(videoCountdownTimer);
+          videoCountdownTimer = null;
+          videoCountdown.style.display = "none";
+        } else {
+          videoCountdown.textContent = "Video will start in " + seconds + " seconds…";
+        }
+      }, 1000);
+    }
     openImageModal(ex);
     if (ex && ex.video_url) {
       pendingVideoTimer = setTimeout(function () {
@@ -240,6 +259,8 @@
 
   function closeImageModal() {
     if (pendingVideoTimer) { clearTimeout(pendingVideoTimer); pendingVideoTimer = null; }
+    if (videoCountdownTimer) { clearInterval(videoCountdownTimer); videoCountdownTimer = null; }
+    if (videoCountdown) { videoCountdown.style.display = "none"; videoCountdown.textContent = ""; }
     if (exerciseImage) { exerciseImage.src = ""; }
     if (imageModal) imageModal.classList.add("hidden");
   }
@@ -373,8 +394,9 @@
           homeExercises.innerHTML = "<p class=\"muted\">No exercises yet. Admin can add global exercises and choose one per muscle for the home page.</p>";
           return;
         }
+        var fallbackImg = "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop";
         homeExercises.innerHTML = list.map(function (ex) {
-          var img = (ex.image_url || "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop").replace(/&/g, "&amp;");
+          var img = (ex.image_url || fallbackImg).replace(/&/g, "&amp;");
           var name = (ex.name || "Exercise").replace(/</g, "&lt;");
           var mg = (ex.muscle_group || "").replace(/</g, "&lt;");
           var id = (ex.id || "").replace(/"/g, "&quot;");
@@ -382,7 +404,7 @@
           var vidUrl = (ex.video_url || "").replace(/"/g, "&quot;");
           return (
             "<article class=\"exercise-tile\" data-id=\"" + id + "\" data-name=\"" + name.replace(/"/g, "&quot;") + "\" data-image-url=\"" + imgUrl + "\" data-video-url=\"" + vidUrl + "\" data-muscle-group=\"" + mg + "\" tabindex=\"0\" role=\"button\">" +
-              "<img src=\"" + img + "\" alt=\"\" loading=\"lazy\" />" +
+              "<img src=\"" + img + "\" alt=\"\" loading=\"lazy\" onerror=\"this.onerror=null;this.src='" + fallbackImg + "';\" />" +
               "<div class=\"exercise-tile-info\">" +
                 "<div class=\"exercise-tile-name\">" + name + "</div>" +
                 "<div class=\"exercise-tile-sub\">" + mg + "</div>" +

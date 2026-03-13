@@ -20,11 +20,9 @@
         {% endif %}
       </p>
       <div class="schedule-image-wrap">
-        <img
-          src="https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop"
-          alt="{{ day }}"
-          loading="lazy"
-        />
+        {% set fallback_src = 'https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=400&h=240&fit=crop' %}
+        {% set img_src = (card_images.get(day) if card_images and card_images.get(day) else fallback_src) %}
+        <img src="{{ img_src }}" alt="{{ day }}" loading="lazy" onerror="this.onerror=null;this.src='{{ fallback_src }}';" />
       </div>
     </div>
   </a>

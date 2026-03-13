@@ -363,14 +363,70 @@ def health():
 @app.route("/")
 def index():
     user = session.get("user")
-    schedule_data = {}
+    schedule_data: dict[str, dict] = {}
+    card_images: dict[str, str] = {}
     if user and SUPABASE_REST and SUPABASE_KEY:
         try:
-            rows = sb_select("weekly_schedule", params={"select": "*", "user_id": f"eq.{user['id']}"})
-            schedule_data = {row["day"]: row for row in (rows or [])}
+            rows = sb_select("weekly_schedule", params={"select": "*", "user_id": f"eq.{user['id']}"}) or []
+            schedule_data = {row["day"]: row for row in rows}
         except Exception:
             schedule_data = {}
-    return render_template("index.html", user=user, schedule=schedule_data)
+
+        # For home preview cards: one exercise image per day based on that day's muscle_group.
+        user_id = user.get("id")
+        if user_id:
+            try:
+                for day in DAYS:
+                    row = schedule_data.get(day) or {}
+                    mg = (row.get("muscle_group") or "").strip().lower()
+                    if not mg or mg == "rest":
+                        continue
+                    # Case-insensitive match because some rows store "Back"/"Shoulders" etc.
+                    ex_rows = sb_select(
+                        "exercises",
+                        params={
+                            "select": "image_url",
+                            "muscle_group": f"ilike.*{mg}*",
+                            "or": f"(created_by.is.null,created_by.eq.{user_id})",
+                            "order": "name.asc",
+                            "limit": 1,
+                        },
+                    ) or []
+                    if ex_rows and ex_rows[0].get("image_url"):
+                        card_images[day] = ex_rows[0]["image_url"]
+            except Exception:
+                card_images = {}
+
+    # Guest view: still show nice images on preview cards (demo muscle groups),
+    # but clicking cards should continue to require login.
+    if not user and SUPABASE_REST and SUPABASE_KEY:
+        demo = {
+            "Monday": "chest",
+            "Tuesday": "back",
+            "Wednesday": "biceps",
+            "Thursday": "triceps",
+            "Friday": "shoulders",
+            "Saturday": "legs",
+            "Sunday": "core",
+        }
+        try:
+            for day, mg in demo.items():
+                ex_rows = sb_select(
+                    "exercises",
+                    params={
+                        "select": "image_url",
+                        "muscle_group": f"ilike.*{mg}*",
+                        "created_by": "is.null",
+                        "order": "name.asc",
+                        "limit": 1,
+                    },
+                ) or []
+                if ex_rows and ex_rows[0].get("image_url"):
+                    card_images[day] = ex_rows[0]["image_url"]
+        except Exception:
+            card_images = {}
+
+    return render_template("index.html", user=user, schedule=schedule_data, card_images=card_images)
 
 
 @app.route("/login-required")
@@ -382,14 +438,49 @@ def login_required_page():
 @app.route("/schedule")
 def schedule():
     user = session.get("user")
-    schedule_data = []
+    schedule_data: dict[str, dict] = {}
+    card_images: dict[str, str] = {}
+
     if user and SUPABASE_REST and SUPABASE_KEY:
         try:
-            rows = sb_select("weekly_schedule", params={"select": "*", "user_id": f"eq.{user['id']}"})
-            schedule_data = {row["day"]: row for row in (rows or [])}
+            rows = sb_select("weekly_schedule", params={"select": "*", "user_id": f"eq.{user['id']}"}) or []
+            schedule_data = {row["day"]: row for row in rows}
         except Exception:
             schedule_data = {}
-    return render_template("schedule.html", days=DAYS, schedule=schedule_data, user=user, muscle_groups=MUSCLE_GROUPS)
+
+        # For each day with a muscle_group, pick one exercise image from Supabase
+        user_id = user.get("id")
+        if user_id:
+            try:
+                for day in DAYS:
+                    row = schedule_data.get(day) or {}
+                    mg = (row.get("muscle_group") or "").strip().lower()
+                    if not mg or mg == "rest":
+                        continue
+                    # Case-insensitive match because some rows store "Back"/"Shoulders" etc.
+                    ex_rows = sb_select(
+                        "exercises",
+                        params={
+                            "select": "image_url",
+                            "muscle_group": f"ilike.*{mg}*",
+                            "or": f"(created_by.is.null,created_by.eq.{user_id})",
+                            "order": "name.asc",
+                            "limit": 1,
+                        },
+                    ) or []
+                    if ex_rows and ex_rows[0].get("image_url"):
+                        card_images[day] = ex_rows[0]["image_url"]
+            except Exception:
+                card_images = {}
+
+    return render_template(
+        "schedule.html",
+        days=DAYS,
+        schedule=schedule_data,
+        user=user,
+        muscle_groups=MUSCLE_GROUPS,
+        card_images=card_images,
+    )
 
 
 @app.route("/schedule/day/<day_name>")
@@ -1465,13 +1556,12 @@ def api_weekly_stats():
         return jsonify({"error": str(e)}), 500
 
 
-import os
-
 if __name__ == "__main__":
     if GMAIL_USER and GMAIL_APP_PASSWORD:
         print("Password reset: Gmail configured — any user can receive reset link.")
     else:
         print("Password reset: Gmail not set — only one email can receive.")
 
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
+    port = int(os.environ.get("PORT", 5000))
+    debug = os.environ.get("FLASK_ENV") == "development"
+    app.run(host="0.0.0.0", port=port, debug=debug)

@@ -17,6 +17,7 @@
   {% if not muscle_group %}
     <p class="muted">No exercises for rest day.</p>
   {% else %}
+    <p class="muted" style="margin-bottom:1rem;">Click any exercise card to see the image. If a video is available it will open after 3 seconds.</p>
     <div class="exercise-grid" id="schedule-day-exercises">
       {% for ex in exercises %}
       <article class="exercise-tile"
@@ -60,6 +61,7 @@
       <img id="exercise-image" alt="" style="width:100%;display:block;border-radius:12px;" />
     </div>
     <p class="video-title" id="image-title"></p>
+    <p class="video-countdown" id="video-countdown" style="margin-top:0.5rem;font-size:0.9rem;color:#b0b8d0;display:none;"></p>
   </div>
 </div>
 {% endblock %}
