@@ -55,13 +55,25 @@ Render will clone the repo, run `pip install -r requirements.txt`, then start wi
 2. In Render dashboard → your service → **Environment** → set **`APP_BASE_URL`** to that URL (so password reset emails use the correct link).
 3. Save. Render will redeploy once.
 
-## 4. APP_BASE_URL (important on Render)
+## 4. APP_BASE_URL + Forgot password link (important)
 
-- **Role:** Used only to build **password reset links** in emails. When a user clicks “Forgot password”, the email link is `APP_BASE_URL/reset-password?token=...`.
-- **On Render:** You **must** set `APP_BASE_URL` to your **live URL**, e.g. `https://my-gym-xxxx.onrender.com`. Do **not** use `http://127.0.0.1:5000` on Render — that would make reset links point to your PC and break.
-- **Locally:** In `.env` you can keep `APP_BASE_URL=http://127.0.0.1:5000`. It does **not** cause crashes on Render; only the wrong value on Render would break reset links.
+- **Role:** Forgot-password emails send a link like `APP_BASE_URL/reset-password?token=...`. If `APP_BASE_URL` is wrong, the link opens nowhere or the wrong place.
+- **On Render you must:** In **Environment**, set **`APP_BASE_URL`** to your **exact Render URL**, e.g. `https://my-gym-xxxx.onrender.com` (no trailing slash, use **https**). If it’s missing or set to `http://127.0.0.1:5000`, the reset link will not work.
+- **For emails to be sent on Render:** In **Environment** also set either **Gmail** (`GMAIL_USER` + `GMAIL_APP_PASSWORD`) or **Resend** (`RESEND_API_KEY` + `RESEND_FROM_EMAIL`). Without these, the reset email is never sent and “nothing happens” when you click Forgot password.
+- **Locally:** Keep `APP_BASE_URL=http://127.0.0.1:5000` in `.env` for local testing.
 
-## 5. Free tier: “Crash” / service stops after ~1 hour
+## 5. “No open HTTP ports” on Render
+
+- **Cause:** Render expects the app to listen on **`0.0.0.0:$PORT`**. It sets `PORT` itself (e.g. 10000). If the app listens on another port or only on 127.0.0.1, Render sees no open port and kills the service.
+- **Fix:**
+  1. **Start Command** must be exactly:  
+     `gunicorn app:app --bind 0.0.0.0:$PORT`  
+     (Do **not** run `python app.py` on Render.)
+  2. **Do not** set **`PORT`** in Render’s Environment. Let Render set it.
+  3. **Do not** change the port in `app.py` (the `if __name__ == "__main__"` block). That block is only for local `python app.py`; on Render only gunicorn runs and it uses `$PORT`.
+- Changing `app.py` to port 5000 or 10000 has **no effect** on Render; the “No open ports” error is fixed only by the correct **Start Command** and not overriding `PORT`.
+
+## 6. Free tier: “Crash” / service stops after ~1 hour
 
 - On the **free tier**, Render **spins down** your service after about **15 minutes** of no traffic. The next request then does a **cold start** (30–60 seconds). That is **not** a crash — the service is sleeping to save resources.
 - If the service actually **crashes** (error in logs, not just slow first load), check **Logs** in the Render dashboard. Common causes: out-of-memory, or a request that takes too long (e.g. big video upload). You can increase gunicorn timeout in the Start Command:
@@ -70,7 +82,7 @@ Render will clone the repo, run `pip install -r requirements.txt`, then start wi
   ```
   (120 seconds; increase if you need longer uploads.)
 
-## 6. Keep Render awake (no sleep on free tier)
+## 7. Keep Render awake (no sleep on free tier)
 
 This repo has a **GitHub Action** that pings your app every **7 minutes** so Render doesn’t spin it down.
 
@@ -85,7 +97,7 @@ This repo has a **GitHub Action** that pings your app every **7 minutes** so Ren
 
 The app has a **`/health`** route that returns 200 OK; the workflow just hits that URL. No extra signup (UptimeRobot etc.) needed.
 
-## 7. About `if __name__ == "__main__"` in app.py
+## 8. About `if __name__ == "__main__"` in app.py
 
 That block runs **only** when you run `python app.py` locally. On Render, **gunicorn** imports `app` and never runs that block, so it does **not** cause Render crashes. Render always uses the Start Command you set (`gunicorn app:app --bind 0.0.0.0:$PORT`).
 

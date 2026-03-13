@@ -56,6 +56,8 @@ GMAIL_USER = (os.environ.get("GMAIL_USER") or "").strip().lower()
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
 # Used only for password-reset links in emails. On Render set to your live URL (e.g. https://my-gym-xxx.onrender.com).
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
+if os.environ.get("PORT") and "127.0.0.1" in APP_BASE_URL:
+    print("WARNING: APP_BASE_URL is still localhost. Set APP_BASE_URL to your Render URL in Environment so forgot-password links work.")
 EXERCISE_IMAGE_BUCKET = os.environ.get("EXERCISE_IMAGE_BUCKET", "exercise-images").strip()
 EXERCISE_VIDEO_BUCKET = os.environ.get("EXERCISE_VIDEO_BUCKET", "exercise-videos").strip()
 ADMIN_EMAILS = {e.strip().lower() for e in (os.environ.get("ADMIN_EMAILS") or "").split(",") if e.strip()}
