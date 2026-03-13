@@ -54,6 +54,7 @@ ALLOWED_RESET_EMAIL = (os.environ.get("ALLOWED_RESET_EMAIL") or "").strip().lowe
 # Gmail SMTP: any user can get reset link (no domain). Set GMAIL_USER + GMAIL_APP_PASSWORD in .env.
 GMAIL_USER = (os.environ.get("GMAIL_USER") or "").strip().lower()
 GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+# Used only for password-reset links in emails. On Render set to your live URL (e.g. https://my-gym-xxx.onrender.com).
 APP_BASE_URL = os.environ.get("APP_BASE_URL", "http://127.0.0.1:5000").rstrip("/")
 EXERCISE_IMAGE_BUCKET = os.environ.get("EXERCISE_IMAGE_BUCKET", "exercise-images").strip()
 EXERCISE_VIDEO_BUCKET = os.environ.get("EXERCISE_VIDEO_BUCKET", "exercise-videos").strip()
@@ -336,6 +337,12 @@ def ensure_admin_flag_on_session_user():
 
 
 # ---------- Pages ----------
+
+
+@app.route("/health")
+def health():
+    """Lightweight endpoint for uptime pings (e.g. GitHub Actions) so Render free tier doesn't spin down."""
+    return "", 200
 
 
 @app.route("/")

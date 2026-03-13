@@ -1,0 +1,7 @@
+# Render Blueprint – use this so the app listens on Render's PORT
+services:
+  - type: web
+    name: my-gym
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT

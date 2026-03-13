@@ -1,0 +1,26 @@
+# Pings your Render app every 7 minutes so the free tier doesn't spin down.
+# Add your Render URL as a secret: Repo → Settings → Secrets and variables → Actions → New repository secret:
+#   Name: RENDER_APP_URL
+#   Value: https://my-gym-xxxx.onrender.com   (your actual URL, no trailing slash)
+
+name: Keep Render awake
+
+on:
+  schedule:
+    # Every 7 minutes (keeps Render free tier from spinning down)
+    - cron: '*/7 * * * *'
+  workflow_dispatch: # Allow manual run from Actions tab
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render app
+        run: |
+          URL="${{ secrets.RENDER_APP_URL }}"
+          if [ -z "$URL" ]; then
+            echo "RENDER_APP_URL secret not set. Add it in repo Settings → Secrets → Actions."
+            exit 0
+          fi
+          echo "Pinging ${URL}/health ..."
+          curl -sf --max-time 60 "${URL}/health" && echo " OK" || echo " (ping failed)"
