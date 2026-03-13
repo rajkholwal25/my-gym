@@ -60,6 +60,7 @@ Render will clone the repo, run `pip install -r requirements.txt`, then start wi
 - **Role:** Forgot-password emails send a link like `APP_BASE_URL/reset-password?token=...`. If `APP_BASE_URL` is wrong, the link opens nowhere or the wrong place.
 - **On Render you must:** In **Environment**, set **`APP_BASE_URL`** to your **exact Render URL**, e.g. `https://my-gym-xxxx.onrender.com` (no trailing slash, use **https**). If it’s missing or set to `http://127.0.0.1:5000`, the reset link will not work.
 - **For emails to be sent on Render:** In **Environment** also set either **Gmail** (`GMAIL_USER` + `GMAIL_APP_PASSWORD`) or **Resend** (`RESEND_API_KEY` + `RESEND_FROM_EMAIL`). Without these, the reset email is never sent and “nothing happens” when you click Forgot password.
+- **If you get "Internal Server Error" on Forgot password:** In **Supabase** → SQL Editor, run **`supabase_add_reset_token_columns.sql`** once (adds reset token columns to `users_profile` if missing). Then try again.
 - **Locally:** Keep `APP_BASE_URL=http://127.0.0.1:5000` in `.env` for local testing.
 
 ## 5. “No open HTTP ports” on Render

@@ -756,17 +756,30 @@ def forgot_password():
         flash("If that email exists, a reset link has been sent.", "success")
         return redirect(url_for("login"))
     except requests.HTTPError as e:
+        err_body = ""
+        if e.response is not None:
+            try:
+                err_body = e.response.text[:500] if e.response.text else ""
+            except Exception:
+                pass
+        print(f"[forgot-password] HTTPError: {e.response.status_code if e.response else '?'} {err_body}")
         if e.response is not None and e.response.status_code == 403:
             flash(
                 "Reset email could not be sent (403). Add and verify your domain at resend.com/domains, "
-                "then set RESEND_FROM_EMAIL in .env to an address on that domain (e.g. My Gym <noreply@yourdomain.com>).",
+                "or set GMAIL_USER and GMAIL_APP_PASSWORD in Environment for all users.",
+                "error",
+            )
+        elif e.response is not None and e.response.status_code == 400:
+            flash(
+                "Server config error: password reset columns may be missing. Run supabase_add_reset_token_columns.sql in Supabase SQL Editor.",
                 "error",
             )
         else:
-            flash(f"Error: {str(e)}", "error")
+            flash("Could not send reset link. Please try again later.", "error")
         return redirect(url_for("forgot_password"))
     except Exception as e:
-        flash(f"Error: {str(e)}", "error")
+        print(f"[forgot-password] Error: {type(e).__name__}: {e}")
+        flash("Could not send reset link. Please try again or contact support.", "error")
         return redirect(url_for("forgot_password"))
 
 
@@ -1418,5 +1431,5 @@ if __name__ == "__main__":
     else:
         print("Password reset: Gmail not set — only one email can receive.")
 
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
